@@ -4,116 +4,123 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Juego de Escala - Plan del Diablo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div class="container">
-        <!-- Pantalla de Inicio -->
         <div id="welcome-screen" class="screen active">
-            <h1>Juego de Escala</h1>
-            <p>Basado en la serie "Plan del Diablo" de Netflix</p>
-            
+            <h1 class="app-title">Juego de Escala</h1>
+            <p class="app-subtitle">Basado en "Plan del Diablo"</p>
+
             <div class="options-container">
-                <button id="create-btn" class="btn primary-btn">Crear nuevo juego</button>
-                <button id="join-btn" class="btn secondary-btn">Unirse a un juego</button>
+                <button id="create-btn" class="btn primary-btn animatable-button"><i class="fas fa-plus-circle"></i> Crear Juego</button>
+                <button id="join-btn" class="btn secondary-btn animatable-button"><i class="fas fa-sign-in-alt"></i> Unirse a Juego</button>
             </div>
+             <footer class="app-footer">
+                Hecho con ❤️ y ⚖️
+             </footer>
         </div>
 
-        <!-- Pantalla de Crear Juego -->
         <div id="create-screen" class="screen">
-            <h2>Crear nuevo juego</h2>
+            <h2><i class="fas fa-cogs"></i> Crear Nuevo Juego</h2>
             <form id="create-form">
                 <div class="form-group">
-                    <label for="host-name">Tu nombre:</label>
-                    <input type="text" id="host-name" required>
+                    <label for="host-name"><i class="fas fa-user"></i> Tu nombre:</label>
+                    <input type="text" id="host-name" required placeholder="Introduce tu nombre de anfitrión">
                 </div>
-                
+
                 <div class="form-actions">
-                    <button type="button" id="back-from-create" class="btn secondary-btn">Volver</button>
-                    <button type="submit" class="btn primary-btn">Crear juego</button>
+                    <button type="button" id="back-from-create" class="btn secondary-btn"><i class="fas fa-arrow-left"></i> Volver</button>
+                    <button type="submit" class="btn primary-btn"><i class="fas fa-check"></i> Crear</button>
                 </div>
             </form>
         </div>
 
-        <!-- Pantalla de Unirse a Juego -->
         <div id="join-screen" class="screen">
-            <h2>Unirse a un juego</h2>
+            <h2><i class="fas fa-plug"></i> Unirse a un Juego</h2>
             <form id="join-form">
                 <div class="form-group">
-                    <label for="game-code">Código del juego:</label>
-                    <input type="text" id="game-code" required maxlength="6">
+                    <label for="game-code"><i class="fas fa-key"></i> Código del juego:</label>
+                    <input type="text" id="game-code" required maxlength="6" placeholder="Código de 6 dígitos">
                 </div>
                 <div class="form-group">
-                    <label for="player-name">Tu nombre:</label>
-                    <input type="text" id="player-name" required>
+                    <label for="player-name"><i class="fas fa-user-tag"></i> Tu nombre:</label>
+                    <input type="text" id="player-name" required placeholder="Introduce tu nombre de jugador">
                 </div>
-                
+
                 <div class="form-actions">
-                    <button type="button" id="back-from-join" class="btn secondary-btn">Volver</button>
-                    <button type="submit" class="btn primary-btn">Unirse</button>
+                    <button type="button" id="back-from-join" class="btn secondary-btn"><i class="fas fa-arrow-left"></i> Volver</button>
+                    <button type="submit" class="btn primary-btn"><i class="fas fa-door-open"></i> Unirse</button>
                 </div>
             </form>
         </div>
 
-        <!-- Pantalla de Sala de Espera (Host) -->
         <div id="host-waiting-screen" class="screen">
-            <h2>Sala de espera</h2>
+            <h2><i class="fas fa-hourglass-half"></i> Sala de Espera (Host)</h2>
             <div class="game-code-display">
-                <h3>Código del juego:</h3>
-                <div id="game-code-display" class="code-box"></div>
-                <button id="copy-code-btn" class="btn"><i class="fas fa-copy"></i> Copiar</button>
+                <h3>Código para unirse:</h3>
+                <div class="code-box-wrapper">
+                    <div id="game-code-display" class="code-box">------</div>
+                    <button id="copy-code-btn" class="btn icon-btn" title="Copiar código"><i class="fas fa-copy"></i></button>
+                </div>
             </div>
-            
+
             <div class="players-container">
-                <h3>Jugadores unidos (<span id="player-count">0</span>/10):</h3>
-                <ul id="players-list"></ul>
+                <h3><i class="fas fa-users"></i> Jugadores (<span id="player-count">0</span>/10):</h3>
+                <ul id="players-list">
+                    <li class="waiting-placeholder">Esperando jugadores...</li>
+                </ul>
             </div>
-            
+
             <div class="waiting-message" id="waiting-message">
-                <p>Esperando a que se unan 10 jugadores...</p>
+                <p>Esperando a que se unan 10 jugadores para empezar...</p>
+                 <div class="loader hidden"></div>
             </div>
-            
-            <button id="start-game-btn" class="btn primary-btn" disabled>Iniciar juego</button>
+
+            <button id="start-game-btn" class="btn primary-btn large-btn" disabled><i class="fas fa-play"></i> Iniciar Juego</button>
         </div>
 
-        <!-- Pantalla de Sala de Espera (Jugador) -->
         <div id="player-waiting-screen" class="screen">
-            <h2>Esperando a que inicie el juego</h2>
-            <div class="waiting-message">
-                <p>Te has unido correctamente al juego.</p>
-                <p>Esperando a que se unan todos los jugadores (<span id="joined-count">0</span>/10)...</p>
-                <p>El anfitrión iniciará la partida cuando estén todos listos.</p>
+             <h2><i class="fas fa-clock"></i> Esperando...</h2>
+             <div class="waiting-message">
+                <p>¡Te has unido! Esperando a que se unan todos (<span id="joined-count">0</span>/10).</p>
+                <p>El anfitrión iniciará la partida pronto.</p>
             </div>
             <div class="loader"></div>
         </div>
 
-        <!-- Pantalla de Juego Principal -->
         <div id="game-screen" class="screen">
             <div class="game-header">
-                <div class="game-info">
-                    <div class="turn-info">
-                        <h3>Turno: <span id="current-turn">1</span></h3>
-                        <h3>Jugador: <span id="current-player">-</span></h3>
+                 <div class="game-info">
+                    <div class="turn-info card">
+                        <h3><i class="fas fa-redo"></i> Turno: <span id="current-turn" class="highlight">1</span></h3>
+                        <h3><i class="fas fa-user-clock"></i> Jugador Actual: <span id="current-player" class="highlight">-</span></h3>
                     </div>
-                    <div class="timer-container">
-                        <div id="timer" class="timer">30</div>
+                    <div class="timer-container card">
+                        <i class="fas fa-stopwatch"></i>
+                        <div id="timer" class="timer highlight">30</div>
+                        <span>s</span>
                     </div>
                 </div>
-                
-                <div class="teams-info">
-                    <h3>Equipos:</h3>
-                    <div id="teams-container" class="teams-container"></div>
+
+                <div class="teams-info card">
+                    <h3><i class="fas fa-users-cog"></i> Equipos:</h3>
+                    <div id="teams-container" class="teams-container">
+                        </div>
                 </div>
             </div>
-            
+
             <div class="scale-container">
                 <div class="scale">
                     <div class="scale-arm" id="scale-arm">
                         <div class="scale-platform left" id="left-platform">
                             <div class="material-stack" id="left-materials"></div>
                             <div class="weight-display">
-                                <span id="left-weight">0</span>g
+                                <span id="left-weight" class="weight-value">0.0</span>g
                             </div>
                         </div>
                         <div class="scale-center">
@@ -121,103 +128,110 @@
                         </div>
                         <div class="scale-platform right" id="right-platform">
                             <div class="material-stack" id="right-materials"></div>
-                            <div class="weight-display">
-                                <span id="right-weight">0</span>g
+                             <div class="weight-display">
+                                <span id="right-weight" class="weight-value">0.0</span>g
                             </div>
                         </div>
                     </div>
                     <div class="scale-base"></div>
                 </div>
             </div>
-            
+
             <div id="player-controls" class="player-controls">
-                <div id="is-your-turn" class="turn-notification hidden">
-                    <h3>¡Es tu turno!</h3>
-                    <p>Selecciona un material y colócalo en uno de los lados de la balanza:</p>
+                <div id="is-your-turn" class="turn-notification hidden card">
+                    <h3><i class="fas fa-star"></i> ¡Es tu turno!</h3>
+                    <p>Selecciona un material y un lado de la balanza.</p>
                 </div>
-                
-                <div id="materials-container" class="materials-container"></div>
-                
-                <div id="side-selection" class="side-selection hidden">
-                    <h4>¿Dónde quieres colocar el material?</h4>
+
+                 <h4 class="materials-title"><i class="fas fa-cubes"></i> Materiales Disponibles:</h4>
+                 <div id="materials-container" class="materials-container">
+                    </div>
+
+                <div id="side-selection" class="side-selection hidden card">
+                    <h4>¿En qué lado colocar <span id="selected-material-name">el material</span>?</h4>
                     <div class="side-buttons">
-                        <button id="select-left" class="btn">Lado Izquierdo</button>
-                        <button id="select-right" class="btn">Lado Derecho</button>
-                        <button id="cancel-selection" class="btn secondary-btn">Cancelar</button>
+                        <button id="select-left" class="btn side-btn left-btn"><i class="fas fa-arrow-left"></i> Izquierdo</button>
+                        <button id="select-right" class="btn side-btn right-btn"><i class="fas fa-arrow-right"></i> Derecho</button>
+                        <button id="cancel-selection" class="btn secondary-btn small-btn"><i class="fas fa-times"></i> Cancelar</button>
                     </div>
                 </div>
-                
-                <div id="waiting-turn" class="waiting-turn">
-                    <p>Esperando al turno de <span id="waiting-player">-</span>...</p>
+
+                <div id="waiting-turn" class="waiting-turn card hidden">
+                    <p><i class="fas fa-pause-circle"></i> Esperando a <strong id="waiting-player">-</strong>...</p>
+                    <div class="mini-loader"></div>
                 </div>
-                
-                <button id="skip-turn-btn" class="btn secondary-btn hidden">Pasar turno</button>
+
+                <button id="skip-turn-btn" class="btn secondary-btn hidden"><i class="fas fa-forward"></i> Pasar Turno</button>
             </div>
         </div>
 
-        <!-- Pantalla de Resultados del Turno -->
         <div id="turn-result-screen" class="screen">
-            <div id="balance-result" class="balance-result">
-                <h2 id="result-title">Resultado del turno</h2>
+             <div id="balance-result" class="balance-result card">
+                <h2 id="result-title"><i class="fas fa-balance-scale"></i> Resultado del Turno</h2>
                 <div id="result-message" class="result-message"></div>
             </div>
-            
-            <div class="turn-summary">
-                <h3>Resumen del turno:</h3>
-                <ul id="turn-summary-list"></ul>
+
+            <div class="turn-summary card">
+                <h3><i class="fas fa-clipboard-list"></i> Resumen:</h3>
+                <ul id="turn-summary-list">
+                    </ul>
             </div>
-            
+
             <div id="result-controls">
-                <button id="next-turn-btn" class="btn primary-btn">Continuar</button>
+                <button id="next-turn-btn" class="btn primary-btn large-btn"><i class="fas fa-step-forward"></i> Continuar</button>
             </div>
         </div>
 
-        <!-- Pantalla de Resultados Finales -->
         <div id="final-results-screen" class="screen">
-            <h2>¡Fin del juego!</h2>
-            
-            <div class="winners-container">
-                <h3>Ganadores:</h3>
-                <ul id="winners-list"></ul>
+            <h2><i class="fas fa-trophy"></i> ¡Fin del Juego!</h2>
+
+            <div class="winners-container card">
+                <h3><i class="fas fa-crown"></i> Ganadores:</h3>
+                <ul id="winners-list">
+                    </ul>
             </div>
-            
-            <div class="final-scale-status">
-                <h3>Estado final de la balanza:</h3>
+
+            <div class="final-scale-status card">
+                <h3><i class="fas fa-balance-scale-right"></i> Balanza Final:</h3>
                 <div id="final-scale-info"></div>
             </div>
-            
-            <div class="eliminated-players">
-                <h3>Jugadores eliminados:</h3>
-                <ul id="eliminated-list"></ul>
+
+            <div class="eliminated-players card">
+                <h3><i class="fas fa-user-slash"></i> Jugadores Eliminados:</h3>
+                 <ul id="eliminated-list">
+                    </ul>
             </div>
-            
-            <button id="play-again-btn" class="btn primary-btn">Jugar otra vez</button>
+
+            <button id="play-again-btn" class="btn primary-btn large-btn"><i class="fas fa-redo-alt"></i> Jugar Otra Vez</button>
         </div>
 
-        <!-- Modal de Notificación -->
         <div id="notification-modal" class="modal">
             <div class="modal-content">
                 <span class="close-btn">&times;</span>
+                <h4><i class="fas fa-info-circle"></i> Notificación</h4>
                 <p id="notification-message"></p>
-                <button id="notification-ok" class="btn">Aceptar</button>
+                <button id="notification-ok" class="btn primary-btn">Aceptar</button>
             </div>
         </div>
 
-        <!-- Modal de Eliminación -->
         <div id="elimination-modal" class="modal">
             <div class="modal-content elimination-content">
-                <h2>¡ELIMINADO!</h2>
-                <p>La balanza se ha desequilibrado.</p>
+                <span class="close-btn">&times;</span>
+                <h2><i class="fas fa-skull-crossbones"></i> ¡ELIMINADO!</h2>
+                 <p>La balanza se desequilibró.</p>
                 <p>Has sido eliminado del juego.</p>
                 <div class="elimination-animation">
                     <i class="fas fa-balance-scale fa-shake"></i>
                 </div>
-                <button id="elimination-ok" class="btn">Aceptar</button>
+                <button id="elimination-ok" class="btn primary-btn">Entendido</button>
             </div>
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+
     <script src="/socket.io/socket.io.js"></script>
+
     <script src="app.js"></script>
 </body>
 </html>

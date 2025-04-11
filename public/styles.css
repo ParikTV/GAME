@@ -1,86 +1,177 @@
-/* Estilos generales */
+/* --- Variables CSS --- */
+:root {
+    --primary-color: #e94560; /* Rosa/Rojo principal */
+    --primary-dark: #d13553;
+    --secondary-color: #0f3460; /* Azul oscuro secundario */
+    --secondary-light: #16213e; /* Fondo principal oscuro */
+    --tertiary-color: #283b5f; /* Azul medio para elementos */
+    --text-light: #e6e6e6; /* Texto claro principal */
+    --text-dark: #333;
+    --accent-color: #ffbd69; /* Acento amarillo/naranja */
+    --success-color: #33ff57;
+    --error-color: #ff5733;
+    --white: #ffffff;
+    --grey-light: #a5a5a5;
+    --grey-medium: #808080;
+
+    --font-family: 'Poppins', sans-serif;
+    --border-radius: 8px;
+    --box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    --transition-speed: 0.3s;
+}
+
+/* --- Reset y Estilos Globales --- */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 body {
-    background-color: #1a1a2e;
-    color: #e6e6e6;
+    background-color: var(--secondary-light);
+    color: var(--text-light);
+    font-family: var(--font-family);
+    line-height: 1.6;
     min-height: 100vh;
+    padding: 20px;
+    background-image: linear-gradient(to bottom right, var(--secondary-light), var(--secondary-color));
 }
 
 .container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 20px;
 }
 
+/* --- Estructura de Pantallas --- */
 .screen {
-    display: none;
+    display: none; /* Oculto por defecto, JS lo maneja */
     flex-direction: column;
     align-items: center;
-    padding: 30px;
-    background-color: #16213e;
-    border-radius: 10px;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+    padding: 30px 40px;
+    background-color: rgba(22, 33, 62, 0.8); /* Fondo semi-transparente */
+    backdrop-filter: blur(5px);
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
     margin: 20px 0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    opacity: 0; /* Para animación de entrada */
+    transform: translateY(20px); /* Para animación de entrada */
+    width: 100%;
 }
 
 .screen.active {
     display: flex;
+    /* La animación de entrada se maneja con JS (Anime.js) */
 }
 
+/* --- Tipografía --- */
 h1, h2, h3, h4 {
-    color: #e94560;
+    color: var(--primary-color);
     margin-bottom: 20px;
     text-align: center;
+    font-weight: 700;
 }
 
-h1 {
-    font-size: 2.5rem;
-    margin-bottom: 10px;
+h1.app-title {
+    font-size: 3rem;
+    margin-bottom: 5px;
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
+
+h2 { font-size: 2rem; }
+h3 { font-size: 1.5rem; margin-bottom: 15px; text-align: left;}
+h4 { font-size: 1.2rem; margin-bottom: 10px; color: var(--accent-color);}
 
 p {
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     text-align: center;
+    max-width: 600px;
+}
+.app-subtitle {
+    font-size: 1.1rem;
+    color: var(--grey-light);
+    margin-bottom: 30px;
+}
+.highlight {
+    color: var(--accent-color);
+    font-weight: 600;
 }
 
-/* Botones */
+i { /* Iconos FontAwesome */
+    margin-right: 8px;
+}
+
+/* --- Botones --- */
 .btn {
-    padding: 12px 24px;
+    padding: 12px 25px;
     border: none;
-    border-radius: 6px;
+    border-radius: var(--border-radius);
     cursor: pointer;
-    font-weight: bold;
-    transition: all 0.3s ease;
+    font-weight: 600;
+    transition: all var(--transition-speed) ease;
     margin: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .primary-btn {
-    background-color: #e94560;
-    color: white;
+    background-color: var(--primary-color);
+    color: var(--white);
+    box-shadow: 0 4px 10px rgba(233, 69, 96, 0.3);
 }
-
-.primary-btn:hover {
-    background-color: #d13553;
+.primary-btn:hover:not(:disabled) {
+    background-color: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(233, 69, 96, 0.5);
 }
 
 .secondary-btn {
-    background-color: #0f3460;
-    color: white;
+    background-color: var(--tertiary-color);
+    color: var(--text-light);
+    border: 1px solid var(--primary-color);
 }
-
-.secondary-btn:hover {
-    background-color: #0a264a;
+.secondary-btn:hover:not(:disabled) {
+    background-color: var(--secondary-color);
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+    transform: translateY(-2px);
 }
 
 .btn:disabled {
-    background-color: #666;
+    background-color: var(--grey-medium);
+    color: var(--grey-light);
     cursor: not-allowed;
+    opacity: 0.6;
+    box-shadow: none;
+    transform: none;
+}
+
+.icon-btn {
+    padding: 10px;
+    background: none;
+    border: 1px solid var(--tertiary-color);
+    color: var(--grey-light);
+}
+.icon-btn:hover {
+    background-color: var(--tertiary-color);
+    color: var(--white);
+}
+.small-btn {
+    padding: 8px 15px;
+    font-size: 0.9rem;
+}
+.large-btn {
+    padding: 15px 35px;
+    font-size: 1.1rem;
+}
+
+.animatable-button:hover {
+     /* Anime.js puede manejar transformaciones más complejas si se desea */
+     transform: scale(1.05);
 }
 
 .options-container {
@@ -88,423 +179,473 @@ p {
     flex-direction: column;
     gap: 15px;
     width: 100%;
-    max-width: 400px;
-    margin-top: 20px;
+    max-width: 350px;
+    margin-top: 30px;
 }
 
-/* Formularios */
+/* --- Formularios --- */
 .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 25px;
     width: 100%;
+    max-width: 400px;
 }
-
 .form-group label {
     display: block;
     margin-bottom: 8px;
-    font-weight: bold;
+    font-weight: 600;
+    color: var(--accent-color);
+    font-size: 0.9rem;
 }
-
 .form-group input {
     width: 100%;
-    padding: 12px;
-    border: 2px solid #0f3460;
-    border-radius: 6px;
-    background-color: #283b5f;
-    color: white;
-    font-size: 16px;
+    padding: 14px;
+    border: 1px solid var(--tertiary-color);
+    border-radius: var(--border-radius);
+    background-color: var(--secondary-color);
+    color: var(--text-light);
+    font-size: 1rem;
+    transition: border-color var(--transition-speed);
 }
-
+.form-group input::placeholder {
+    color: var(--grey-light);
+    opacity: 0.7;
+}
 .form-group input:focus {
     outline: none;
-    border-color: #e94560;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.3);
 }
-
 .form-actions {
     display: flex;
     justify-content: space-between;
     margin-top: 30px;
     width: 100%;
+     max-width: 400px;
 }
 
-/* Código del juego */
+/* --- Elementos Específicos de Pantallas --- */
+
+/* Bienvenida */
+.app-footer {
+    margin-top: 40px;
+    font-size: 0.9rem;
+    color: var(--grey-light);
+    opacity: 0.7;
+}
+
+/* Sala de Espera */
 .game-code-display {
     text-align: center;
-    margin: 20px 0;
+    margin: 20px 0 30px 0;
+    width: 100%;
+    max-width: 450px;
 }
-
+.code-box-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
+}
 .code-box {
-    font-size: 24px;
-    background-color: #0f3460;
+    font-size: 2rem;
+    background-color: var(--secondary-color);
     padding: 15px 30px;
-    border-radius: 6px;
-    margin: 10px 0;
-    letter-spacing: 3px;
-    display: inline-block;
+    border-radius: var(--border-radius);
+    font-weight: 700;
+    letter-spacing: 5px;
+    color: var(--accent-color);
+    border: 1px solid var(--tertiary-color);
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
 }
-
-/* Lista de jugadores */
 .players-container {
     width: 100%;
     max-width: 500px;
     margin: 20px 0;
 }
-
 #players-list {
     list-style: none;
-    border: 1px solid #0f3460;
-    border-radius: 6px;
-    padding: 10px;
-    max-height: 200px;
+    border: 1px solid var(--tertiary-color);
+    border-radius: var(--border-radius);
+    padding: 15px;
+    max-height: 250px;
     overflow-y: auto;
-    background-color: #1e2a4a;
+    background-color: var(--secondary-color);
 }
-
 #players-list li {
-    padding: 10px;
-    border-bottom: 1px solid #0f3460;
+    padding: 12px 10px;
+    border-bottom: 1px solid var(--tertiary-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    font-size: 1rem;
+    transition: background-color var(--transition-speed);
 }
-
-#players-list li:last-child {
-    border-bottom: none;
-}
-
+#players-list li:last-child { border-bottom: none; }
+#players-list li:hover { background-color: var(--tertiary-color); }
 .waiting-message {
-    margin: 20px 0;
+    margin: 25px 0;
     text-align: center;
+    font-style: italic;
+    color: var(--grey-light);
 }
 
-/* Loader */
+/* Loaders */
 .loader {
-    border: 5px solid #0f3460;
+    border: 5px solid var(--tertiary-color);
     border-radius: 50%;
-    border-top: 5px solid #e94560;
-    width: 40px;
-    height: 40px;
+    border-top: 5px solid var(--primary-color);
+    width: 50px;
+    height: 50px;
     animation: spin 1s linear infinite;
     margin: 20px auto;
 }
-
+.mini-loader {
+    border: 3px solid var(--tertiary-color);
+    border-radius: 50%;
+    border-top: 3px solid var(--accent-color);
+    width: 20px;
+    height: 20px;
+    animation: spin 0.8s linear infinite;
+    display: inline-block;
+    margin-left: 10px;
+    vertical-align: middle;
+}
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+.hidden { display: none !important; } /* Mantener !important para JS simple */
 
-/* Pantalla de juego */
+/* --- Pantalla de Juego --- */
+.card { /* Estilo reutilizable para secciones */
+    background-color: var(--tertiary-color);
+    padding: 15px 20px;
+    border-radius: var(--border-radius);
+    margin-bottom: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
 .game-header {
     display: flex;
     justify-content: space-between;
     width: 100%;
-    margin-bottom: 20px;
+    margin-bottom: 30px;
     flex-wrap: wrap;
-}
-
-.game-info {
-    display: flex;
     gap: 20px;
-    align-items: center;
 }
-
-.turn-info h3 {
+.game-info, .teams-info {
+    flex: 1;
+    min-width: 250px;
+}
+.turn-info h3, .timer-container, .teams-info h3 {
     margin-bottom: 10px;
     text-align: left;
 }
-
 .timer-container {
     display: flex;
     align-items: center;
+    font-size: 1.5rem;
+    gap: 10px;
+    color: var(--primary-color);
 }
-
 .timer {
-    background-color: #0f3460;
-    color: white;
-    font-size: 24px;
-    font-weight: bold;
-    padding: 10px 20px;
-    border-radius: 6px;
-    text-align: center;
+    font-size: 2rem;
+    font-weight: 700;
 }
-
-.teams-info {
-    margin-top: 10px;
-}
-
 .teams-container {
     display: flex;
-    gap: 15px;
+    gap: 10px;
     flex-wrap: wrap;
 }
-
 .team-box {
-    background-color: #283b5f;
-    padding: 8px 15px;
+    background-color: var(--secondary-color);
+    padding: 8px 12px;
     border-radius: 6px;
-    font-size: 14px;
+    font-size: 0.9rem;
+    border-left: 4px solid var(--accent-color); /* Color se añadirá con JS */
+    transition: transform var(--transition-speed);
+}
+.team-box:hover {
+    transform: scale(1.05);
 }
 
-/* Balanza */
+/* Balanza Mejorada */
 .scale-container {
     width: 100%;
     display: flex;
     justify-content: center;
-    margin: 30px 0;
-    perspective: 1000px;
+    margin: 40px 0;
+    perspective: 1200px;
+    min-height: 300px; /* Asegurar espacio */
 }
-
 .scale {
     position: relative;
-    width: 600px;
-    height: 300px;
+    width: clamp(300px, 90%, 700px); /* Ancho responsivo */
+    height: auto; /* Ajustar altura */
     display: flex;
     flex-direction: column;
     align-items: center;
 }
-
 .scale-arm {
     width: 100%;
-    height: 20px;
-    background-color: #e94560;
+    height: 15px; /* Más delgado */
+    background-image: linear-gradient(to right, var(--primary-dark), var(--primary-color), var(--primary-dark));
     position: relative;
     display: flex;
     justify-content: space-between;
     align-items: center;
     transform-style: preserve-3d;
-    transition: transform 1s ease;
+    transition: transform 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55); /* Transición suave con rebote */
     border-radius: 10px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+    top: 70px; /* Ajustar posición */
 }
-
 .scale-center {
     position: absolute;
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
+    z-index: 1;
 }
-
 .scale-pivot {
-    width: 30px;
-    height: 30px;
-    background-color: #0f3460;
+    width: 25px;
+    height: 25px;
+    background-color: var(--secondary-color);
     border-radius: 50%;
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    border: 3px solid #e94560;
+    border: 3px solid var(--accent-color);
+    box-shadow: 0 0 10px var(--accent-color);
 }
-
 .scale-platform {
-    width: 150px;
-    height: 150px;
-    background-color: #283b5f;
-    border: 3px solid #e94560;
-    border-radius: 10px;
-    position: relative;
+    width: clamp(100px, 25%, 150px); /* Ancho responsivo */
+    aspect-ratio: 1 / 1; /* Mantener cuadrado */
+    background-color: var(--tertiary-color);
+    border: 2px solid var(--primary-color);
+    border-radius: var(--border-radius);
+    position: absolute; /* Posicionar absolutamente */
+    bottom: -140px; /* Ajustar posición relativa al brazo */
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-end;
-    margin-top: 80px;
+    justify-content: flex-end; /* Alinear contenido abajo */
     transform-style: preserve-3d;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+    padding-bottom: 35px; /* Espacio para el display de peso */
 }
+.scale-platform.left { left: 5%; } /* Ajustar posición */
+.scale-platform.right { right: 5%; } /* Ajustar posición */
 
-.scale-platform.left {
-    margin-left: 50px;
-}
-
-.scale-platform.right {
-    margin-right: 50px;
-}
-
-.scale-base {
-    width: 150px;
-    height: 40px;
-    background-color: #0f3460;
-    margin-top: 20px;
-    border-radius: 10px;
-    position: relative;
-}
-
-.scale-base:before {
+/* Cadenas/Soportes de la balanza (simulado) */
+.scale-platform::before, .scale-platform::after {
     content: '';
     position: absolute;
-    width: 20px;
-    height: 100px;
-    background-color: #0f3460;
-    top: -100px;
+    width: 2px;
+    height: 130px; /* Largo de la cadena */
+    background-color: var(--grey-light);
+    top: -130px; /* Desde arriba de la plataforma */
+    opacity: 0.7;
+}
+.scale-platform::before { left: 15%; }
+.scale-platform::after { right: 15%; }
+
+
+.scale-base {
+    width: 180px;
+    height: 50px;
+    background-image: linear-gradient(to top, var(--secondary-color), var(--tertiary-color));
+    margin-top: 10px; /* Espacio respecto al brazo */
+    border-radius: 10px 10px 0 0;
+    position: relative;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+.scale-base::before { /* Soporte vertical */
+    content: '';
+    position: absolute;
+    width: 25px;
+    height: 80px; /* Altura del soporte */
+    background-color: var(--secondary-color);
+    top: -80px; /* Encima de la base */
     left: 50%;
     transform: translateX(-50%);
+    border-radius: 5px 5px 0 0;
 }
 
 .material-stack {
     display: flex;
-    flex-direction: column-reverse;
+    flex-direction: column-reverse; /* Apilar de abajo hacia arriba */
     align-items: center;
-    width: 100%;
-    height: calc(100% - 30px);
+    width: 90%;
+    height: 100%;
     overflow: hidden;
+    padding-top: 5px;
 }
-
 .material-item {
-    width: 80%;
-    margin-bottom: 5px;
+    width: 85%;
+    margin-bottom: 3px;
     text-align: center;
-    padding: 5px;
-    border-radius: 5px;
-    font-weight: bold;
-    font-size: 14px;
+    padding: 4px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.8rem; /* Más pequeño */
+    line-height: 1.2;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    opacity: 0; /* Para animación */
+    transform: translateY(10px); /* Para animación */
 }
-
 .weight-display {
-    background-color: #0f3460;
-    color: white;
+    background-color: rgba(15, 52, 96, 0.8); /* Fondo semi-transparente */
+    color: var(--white);
     padding: 5px 10px;
-    border-radius: 5px;
-    font-size: 14px;
-    font-weight: bold;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 600;
     position: absolute;
     bottom: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    transition: background-color var(--transition-speed);
+}
+.weight-value {
+    font-weight: 700;
+    min-width: 30px; /* Asegurar espacio */
+    display: inline-block;
+    text-align: right;
 }
 
-/* Control de jugador */
+/* Controles del Jugador */
 .player-controls {
     width: 100%;
-    margin-top: 20px;
+    margin-top: 30px;
     display: flex;
     flex-direction: column;
     align-items: center;
 }
-
 .turn-notification {
     margin-bottom: 20px;
     text-align: center;
-    padding: 10px;
-    background-color: #e94560;
-    color: white;
-    border-radius: 6px;
     width: 100%;
     max-width: 600px;
-    animation: pulse 2s infinite;
+    background-color: rgba(233, 69, 96, 0.2);
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+    animation: pulse 1.5s infinite ease-in-out;
 }
-
 @keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(233, 69, 96, 0.7); }
-    70% { box-shadow: 0 0 0 10px rgba(233, 69, 96, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(233, 69, 96, 0); }
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.03); opacity: 0.8; }
 }
-
+.materials-title {
+    margin-bottom: 15px;
+    width: 100%;
+    max-width: 800px;
+    text-align: left;
+}
 .materials-container {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 12px;
     justify-content: center;
     max-width: 800px;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
+    width: 100%;
 }
-
 .material-button {
-    padding: 10px;
+    padding: 10px 12px;
     border: 2px solid transparent;
-    border-radius: 6px;
+    border-radius: var(--border-radius);
     cursor: pointer;
-    font-weight: bold;
+    font-weight: 600;
     text-align: center;
-    width: 120px;
-    transition: all 0.3s ease;
+    min-width: 130px; /* Ancho mínimo */
+    transition: all var(--transition-speed) ease;
+    font-size: 0.9rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    opacity: 0; /* Para animación */
+    transform: scale(0.8); /* Para animación */
 }
-
-.material-button:hover {
-    transform: translateY(-5px);
+.material-button:hover:not(.selected-material) {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: var(--box-shadow);
 }
-
 .selected-material {
-    border: 2px solid white;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    border: 2px solid var(--accent-color);
+    box-shadow: 0 0 12px var(--accent-color);
+    transform: scale(1.05); /* Resaltar selección */
 }
-
 .side-selection {
     margin-top: 20px;
-    padding: 15px;
-    background-color: #283b5f;
-    border-radius: 6px;
     width: 100%;
     max-width: 500px;
     text-align: center;
 }
-
 .side-buttons {
     display: flex;
     justify-content: center;
-    gap: 10px;
-    margin-top: 10px;
+    gap: 15px;
+    margin-top: 15px;
+    flex-wrap: wrap;
 }
+.side-btn {
+    flex-grow: 1; /* Ocupar espacio */
+    min-width: 120px;
+}
+.left-btn { background-color: #3498db; color: white; }
+.left-btn:hover { background-color: #2980b9; }
+.right-btn { background-color: #e74c3c; color: white; }
+.right-btn:hover { background-color: #c0392b; }
 
 .waiting-turn {
     margin-top: 20px;
     text-align: center;
-}
-
-.hidden {
-    display: none;
-}
-
-/* Resultados del turno */
-.balance-result {
-    text-align: center;
-    margin-bottom: 30px;
+    font-size: 1.1rem;
     width: 100%;
 }
+.waiting-turn p { display: flex; align-items: center; justify-content: center; gap: 10px;}
 
+
+/* --- Pantallas de Resultados --- */
+.balance-result { text-align: center; margin-bottom: 30px; width: 100%;}
 .result-message {
-    font-size: 20px;
+    font-size: 1.2rem;
     margin: 20px 0;
-    padding: 15px;
-    background-color: #283b5f;
-    border-radius: 6px;
+    padding: 20px;
 }
-
-.turn-summary {
+.turn-summary, .winners-container, .final-scale-status, .eliminated-players {
     width: 100%;
     max-width: 600px;
+    margin-bottom: 25px;
 }
-
-#turn-summary-list {
+#turn-summary-list, #winners-list, #eliminated-list {
     list-style: none;
+    padding: 0;
 }
-
-#turn-summary-list li {
-    padding: 10px;
-    border-bottom: 1px solid #283b5f;
+#turn-summary-list li, #winners-list li, #eliminated-list li {
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--secondary-color);
+    background-color: var(--tertiary-color);
+    transition: background-color var(--transition-speed);
 }
-
-/* Resultados finales */
-.winners-container, .final-scale-status, .eliminated-players {
-    width: 100%;
-    max-width: 600px;
-    margin-bottom: 30px;
+#turn-summary-list li:first-child, #winners-list li:first-child, #eliminated-list li:first-child {
+    border-top-left-radius: var(--border-radius);
+    border-top-right-radius: var(--border-radius);
 }
-
-#winners-list, #eliminated-list {
-    list-style: none;
-    padding: 10px;
-    background-color: #283b5f;
-    border-radius: 6px;
+#turn-summary-list li:last-child, #winners-list li:last-child, #eliminated-list li:last-child {
+    border-bottom: none;
+     border-bottom-left-radius: var(--border-radius);
+    border-bottom-right-radius: var(--border-radius);
 }
-
-#winners-list li, #eliminated-list li {
-    padding: 10px;
-    border-bottom: 1px solid #0f3460;
+#turn-summary-list li:hover, #winners-list li:hover, #eliminated-list li:hover {
+     background-color: var(--secondary-color);
 }
+#final-scale-info { margin-top: 15px; }
+#final-scale-info p { text-align: left; margin-bottom: 8px; }
 
-#final-scale-info {
-    padding: 15px;
-    background-color: #283b5f;
-    border-radius: 6px;
-    margin-top: 10px;
-}
-
-/* Modal */
+/* --- Modales --- */
 .modal {
     display: none;
     position: fixed;
@@ -513,125 +654,129 @@ p {
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(5px);
+    background-color: rgba(15, 52, 96, 0.6); /* Azul oscuro translúcido */
+    backdrop-filter: blur(8px);
+    overflow: auto;
+    padding-top: 60px;
+    /* Animación de entrada del modal */
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+.modal.active {
+    display: block;
+    opacity: 1;
 }
 
 .modal-content {
-    background-color: #16213e;
-    margin: 15% auto;
-    padding: 20px;
-    border: 2px solid #e94560;
-    border-radius: 10px;
+    background-color: var(--secondary-light);
+    margin: 5% auto;
+    padding: 30px 40px;
+    border: 1px solid var(--primary-color);
+    border-radius: var(--border-radius);
     width: 90%;
-    max-width: 500px;
+    max-width: 550px;
     position: relative;
     text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    /* Animación de entrada del contenido */
+    transform: scale(0.9) translateY(-20px);
+    opacity: 0;
+    transition: transform 0.4s ease, opacity 0.4s ease;
+}
+.modal.active .modal-content {
+    transform: scale(1) translateY(0);
+    opacity: 1;
 }
 
 .close-btn {
-    color: #e94560;
-    float: right;
-    font-size: 28px;
+    color: var(--grey-light);
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 2rem;
     font-weight: bold;
     cursor: pointer;
+    transition: color var(--transition-speed);
 }
+.close-btn:hover { color: var(--primary-color); }
 
-.close-btn:hover {
-    color: #d13553;
-}
+.modal-content h4 { margin-bottom: 15px; }
+.modal-content p { margin-bottom: 25px; }
+.modal-content .btn { margin-top: 10px; }
 
-.elimination-content {
-    text-align: center;
-    padding: 30px;
-}
-
-.elimination-content h2 {
-    color: #e94560;
-    font-size: 28px;
-    margin-bottom: 20px;
-}
-
-.elimination-animation {
-    font-size: 60px;
-    color: #e94560;
-    margin: 30px 0;
-}
-
-.fa-shake {
-    animation: shake 0.5s infinite;
-}
-
+.elimination-content { text-align: center; padding: 30px; }
+.elimination-content h2 { color: var(--error-color); font-size: 2.2rem; margin-bottom: 15px;}
+.elimination-animation { font-size: 5rem; color: var(--error-color); margin: 30px 0; }
+.fa-shake { animation: shake 0.6s cubic-bezier(.36,.07,.19,.97) both infinite; }
 @keyframes shake {
-    0% { transform: rotate(0deg); }
-    25% { transform: rotate(-5deg); }
-    50% { transform: rotate(0deg); }
-    75% { transform: rotate(5deg); }
-    100% { transform: rotate(0deg); }
+  10%, 90% { transform: translate3d(-1px, 0, 0) rotate(-2deg); }
+  20%, 80% { transform: translate3d(2px, 0, 0) rotate(2deg); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0) rotate(-3deg); }
+  40%, 60% { transform: translate3d(4px, 0, 0) rotate(3deg); }
 }
 
-/* Colores para los materiales */
-.metal { background-color: #a5a5a5; color: #333; }
-.madera { background-color: #8b4513; color: white; }
-.vidrio { background-color: #add8e6; color: #333; }
-.plastico { background-color: #ff69b4; color: white; }
-.piedra { background-color: #808080; color: white; }
-.algodon { background-color: #f0f8ff; color: #333; }
-.tela { background-color: #800080; color: white; }
-.papel { background-color: #f5f5f5; color: #333; }
-.espuma { background-color: #ffff00; color: #333; }
-.ceramica { background-color: #cd5c5c; color: white; }
 
-/* Responsive */
+/* --- Colores de Materiales --- */
+/* (Mismos colores, pero puedes ajustarlos si quieres) */
+.metal { background-color: #bdc3c7; color: var(--text-dark); border-left: 4px solid #7f8c8d; }
+.madera { background-color: #a0522d; color: var(--white); border-left: 4px solid #8b4513; }
+.vidrio { background-color: #a2d5f2; color: var(--text-dark); border-left: 4px solid #74b9ff; }
+.plastico { background-color: #ff7675; color: var(--white); border-left: 4px solid #d63031; }
+.piedra { background-color: #8395a7; color: var(--white); border-left: 4px solid #576574; }
+.algodon { background-color: #f7f1e3; color: var(--text-dark); border-left: 4px solid #dcdde1; }
+.tela { background-color: #a29bfe; color: var(--white); border-left: 4px solid #6c5ce7; }
+.papel { background-color: #dfe6e9; color: var(--text-dark); border-left: 4px solid #b2bec3; }
+.espuma { background-color: #ffeaa7; color: var(--text-dark); border-left: 4px solid #fdcb6e; }
+.ceramica { background-color: #fab1a0; color: var(--text-dark); border-left: 4px solid #e17055; }
+
+
+/* --- Media Queries (Responsividad) --- */
 @media (max-width: 768px) {
-    .scale {
-        width: 100%;
-        height: 250px;
-    }
-    
-    .scale-platform {
-        width: 100px;
-        height: 100px;
-    }
-    
-    .scale-platform.left {
-        margin-left: 20px;
-    }
-    
-    .scale-platform.right {
-        margin-right: 20px;
-    }
-    
-    .game-header {
-        flex-direction: column;
-        gap: 20px;
-    }
-    
-    .material-button {
-        width: 100px;
-    }
+    body { padding: 10px; }
+    .screen { padding: 20px; }
+    h1.app-title { font-size: 2.2rem; }
+    h2 { font-size: 1.8rem; }
+    h3 { font-size: 1.3rem; }
+
+    .game-header { flex-direction: column; gap: 15px; }
+    .game-info { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .timer-container { justify-content: flex-start; }
+
+    .scale-container { margin: 30px 0; min-height: 250px; }
+    .scale-arm { top: 50px; height: 12px; }
+    .scale-platform { bottom: -100px; }
+    .scale-platform::before, .scale-platform::after { height: 90px; top: -90px; }
+    .scale-base::before { height: 60px; top: -60px; }
+
+    .materials-container { gap: 8px; }
+    .material-button { min-width: 110px; font-size: 0.85rem; padding: 8px 10px; }
+
+    .form-actions { flex-direction: column; gap: 10px; }
+    .form-actions .btn { width: 100%; }
+
+    .modal-content { width: 95%; margin: 10% auto; padding: 20px; }
 }
 
 @media (max-width: 480px) {
-    .screen {
-        padding: 15px;
-    }
-    
-    h1 {
-        font-size: 1.8rem;
-    }
-    
-    .scale {
-        height: 200px;
-    }
-    
-    .scale-platform {
-        width: 80px;
-        height: 80px;
-    }
-    
-    .material-button {
-        width: 80px;
-        font-size: 12px;
-    }
+    h1.app-title { font-size: 1.8rem; }
+    h2 { font-size: 1.5rem; }
+    h3 { font-size: 1.1rem; }
+    .btn { font-size: 0.9rem; padding: 10px 20px; }
+    .large-btn { padding: 12px 25px; font-size: 1rem; }
+
+    .code-box { font-size: 1.5rem; padding: 10px 20px; letter-spacing: 3px; }
+    .code-box-wrapper { flex-direction: column; gap: 15px; }
+
+    .scale-container { min-height: 200px; }
+    .scale-arm { top: 40px; height: 10px; }
+    .scale-platform { width: 80px; bottom: -80px; }
+    .scale-platform::before, .scale-platform::after { height: 70px; top: -70px; }
+    .scale-base::before { height: 50px; top: -50px; }
+
+    .material-button { min-width: 90px; font-size: 0.8rem; padding: 6px 8px; }
+    .weight-display { font-size: 0.8rem; }
+    .material-item { font-size: 0.7rem; }
+
+    .teams-container { gap: 5px; }
+    .team-box { font-size: 0.8rem; padding: 6px 10px; }
 }
