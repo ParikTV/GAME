@@ -143,25 +143,27 @@
                     <p>Selecciona un material y un lado de la balanza.</p>
                 </div>
 
-                 <h4 class="materials-title"><i class="fas fa-cubes"></i> Materiales Disponibles:</h4>
-                 <div id="materials-container" class="materials-container">
+                <div id="materials-wrapper" class="hidden">
+                    <h4 class="materials-title"><i class="fas fa-cubes"></i> Materiales Disponibles:</h4>
+                    <div id="materials-container" class="materials-container">
+                        </div>
+                     <div id="side-selection" class="side-selection hidden card">
+                        <h4>¿En qué lado colocar <span id="selected-material-name">el material</span>?</h4>
+                        <div class="side-buttons">
+                            <button id="select-left" class="btn side-btn left-btn"><i class="fas fa-arrow-left"></i> Izquierdo</button>
+                            <button id="select-right" class="btn side-btn right-btn"><i class="fas fa-arrow-right"></i> Derecho</button>
+                            <button id="cancel-selection" class="btn secondary-btn small-btn"><i class="fas fa-times"></i> Cancelar</button>
+                        </div>
                     </div>
-
-                <div id="side-selection" class="side-selection hidden card">
-                    <h4>¿En qué lado colocar <span id="selected-material-name">el material</span>?</h4>
-                    <div class="side-buttons">
-                        <button id="select-left" class="btn side-btn left-btn"><i class="fas fa-arrow-left"></i> Izquierdo</button>
-                        <button id="select-right" class="btn side-btn right-btn"><i class="fas fa-arrow-right"></i> Derecho</button>
-                        <button id="cancel-selection" class="btn secondary-btn small-btn"><i class="fas fa-times"></i> Cancelar</button>
-                    </div>
+                    <button id="skip-turn-btn" class="btn secondary-btn hidden"><i class="fas fa-forward"></i> Pasar Turno</button>
                 </div>
+
 
                 <div id="waiting-turn" class="waiting-turn card hidden">
                     <p><i class="fas fa-pause-circle"></i> Esperando a <strong id="waiting-player">-</strong>...</p>
                     <div class="mini-loader"></div>
                 </div>
 
-                <button id="skip-turn-btn" class="btn secondary-btn hidden"><i class="fas fa-forward"></i> Pasar Turno</button>
             </div>
         </div>
 
@@ -188,18 +190,19 @@
             <div class="winners-container card">
                 <h3><i class="fas fa-crown"></i> Ganadores:</h3>
                 <ul id="winners-list">
-                    </ul>
+                     </ul>
             </div>
 
             <div class="final-scale-status card">
                 <h3><i class="fas fa-balance-scale-right"></i> Balanza Final:</h3>
-                <div id="final-scale-info"></div>
+                <div id="final-scale-info">
+                    </div>
             </div>
 
             <div class="eliminated-players card">
                 <h3><i class="fas fa-user-slash"></i> Jugadores Eliminados:</h3>
                  <ul id="eliminated-list">
-                    </ul>
+                     </ul>
             </div>
 
             <button id="play-again-btn" class="btn primary-btn large-btn"><i class="fas fa-redo-alt"></i> Jugar Otra Vez</button>
