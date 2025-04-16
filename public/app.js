@@ -1,851 +1,781 @@
-// Conexión a Socket.IO
+// --- Conexión Socket.IO ---
 const socket = io();
 
-// Elementos DOM (sin cambios, los mantenemos igual)
+// --- Selectores DOM (Actualizar según HTML final) ---
 const screens = {
     welcome: document.getElementById('welcome-screen'),
     create: document.getElementById('create-screen'),
     join: document.getElementById('join-screen'),
-    hostWaiting: document.getElementById('host-waiting-screen'),
-    playerWaiting: document.getElementById('player-waiting-screen'),
+    waiting: document.getElementById('waiting-screen'), // Pantalla de espera unificada
     game: document.getElementById('game-screen'),
-    turnResult: document.getElementById('turn-result-screen'),
-    finalResults: document.getElementById('final-results-screen')
+    finalResults: document.getElementById('final-results-screen'),
 };
-const createGameBtn = document.getElementById('create-btn');
-const joinGameBtn = document.getElementById('join-btn');
+
+// Botones Navegación/Acción
+const createBtn = document.getElementById('create-btn');
+const joinBtn = document.getElementById('join-btn');
 const backFromCreateBtn = document.getElementById('back-from-create');
 const backFromJoinBtn = document.getElementById('back-from-join');
+const startGameBtn = document.getElementById('start-game-btn'); // En waiting screen
 const copyCodeBtn = document.getElementById('copy-code-btn');
-const startGameBtn = document.getElementById('start-game-btn');
-const skipTurnBtn = document.getElementById('skip-turn-btn');
-const selectLeftBtn = document.getElementById('select-left');
-const selectRightBtn = document.getElementById('select-right');
-const cancelSelectionBtn = document.getElementById('cancel-selection');
-const nextTurnBtn = document.getElementById('next-turn-btn');
+const placeSelectedBtn = document.getElementById('place-selected-btn');
+const cancelPlacementBtn = document.getElementById('cancel-placement-btn');
+const guessWeightsBtn = document.getElementById('guess-weights-btn');
 const playAgainBtn = document.getElementById('play-again-btn');
-const notificationOkBtn = document.getElementById('notification-ok');
-const eliminationOkBtn = document.getElementById('elimination-ok');
+
+// Formularios
 const createForm = document.getElementById('create-form');
 const joinForm = document.getElementById('join-form');
-const gameCodeDisplay = document.getElementById('game-code-display');
-const playersList = document.getElementById('players-list');
-const playerCount = document.getElementById('player-count');
-const joinedCount = document.getElementById('joined-count');
-const currentTurn = document.getElementById('current-turn');
-const currentPlayer = document.getElementById('current-player');
-const waitingPlayer = document.getElementById('waiting-player');
-const timer = document.getElementById('timer');
-const teamsContainer = document.getElementById('teams-container');
-const leftWeight = document.getElementById('left-weight');
-const rightWeight = document.getElementById('right-weight');
-const leftMaterials = document.getElementById('left-materials');
-const rightMaterials = document.getElementById('right-materials');
-const materialsContainer = document.getElementById('materials-container');
-const scaleArm = document.getElementById('scale-arm');
-const isYourTurn = document.getElementById('is-your-turn');
-const waitingTurn = document.getElementById('waiting-turn');
-const sideSelection = document.getElementById('side-selection');
-const resultTitle = document.getElementById('result-title');
-const resultMessage = document.getElementById('result-message');
-const turnSummaryList = document.getElementById('turn-summary-list');
-const winnersList = document.getElementById('winners-list');
-const finalScaleInfo = document.getElementById('final-scale-info');
-const eliminatedList = document.getElementById('eliminated-list');
-const notificationModal = document.getElementById('notification-modal');
-const eliminationModal = document.getElementById('elimination-modal');
-const notificationMessage = document.getElementById('notification-message');
-const waitingPlaceholder = document.querySelector('.waiting-placeholder'); // Added selector
+const guessForm = document.getElementById('guess-form');
 
-// Variables del estado del juego (sin cambios)
+// Displays Espera
+const waitGameCodeDisplay = document.getElementById('wait-game-code-display');
+const waitPlayerCount = document.getElementById('wait-player-count');
+const waitPlayersList = document.getElementById('wait-players-list');
+const hostInstructions = document.getElementById('host-instructions');
+const playerWaitMessage = document.getElementById('player-wait-message');
+
+// Displays Juego
+const currentPlayerIndicator = document.getElementById('current-player-indicator');
+const gameTimer = document.getElementById('game-timer');
+const knownInfoText = document.getElementById('known-info-text');
+const lastGuessInfoCard = document.querySelector('.last-guess-info');
+const lastGuessText = document.getElementById('last-guess-text');
+
+// Balanzas
+const mainScaleArm = document.getElementById('main-scale-arm');
+const mainLeftMaterials = document.getElementById('main-left-materials');
+const mainRightMaterials = document.getElementById('main-right-materials');
+const mainLeftWeight = document.getElementById('main-left-weight');
+const mainRightWeight = document.getElementById('main-right-weight');
+const mainBalanceStatus = document.getElementById('main-balance-status');
+
+const secondaryScaleArm = document.getElementById('secondary-scale-arm');
+const secondaryLeftMaterials = document.getElementById('secondary-left-materials');
+const secondaryRightMaterials = document.getElementById('secondary-right-materials');
+const secondaryLeftWeight = document.getElementById('secondary-left-weight');
+const secondaryRightWeight = document.getElementById('secondary-right-weight');
+
+// Área del Jugador
+const myTurnIndicator = document.getElementById('my-turn-indicator');
+const waitingTurnIndicator = document.getElementById('waiting-turn-indicator');
+const myInventoryContainer = document.getElementById('my-inventory-container');
+const myMineralCount = document.getElementById('my-mineral-count');
+const placementControlsSection = document.getElementById('placement-controls-section');
+const selectedCountSpan = document.getElementById('selected-count');
+const targetScaleSelect = document.getElementById('target-scale-select');
+const targetSideSelect = document.getElementById('target-side-select');
+const placementError = document.getElementById('placement-error');
+const cannotPlaceMessage = document.getElementById('cannot-place-message');
+
+// Sidebar Jugadores
+const gamePlayersList = document.getElementById('game-players-list');
+
+// Modales
+const guessModal = document.getElementById('guess-modal');
+const notificationModal = document.getElementById('notification-modal');
+const notificationMessage = document.getElementById('notification-message');
+
+// Estado del Cliente
 let gameId = null;
 let playerId = null;
-let playerName = '';
 let isHost = false;
-let gameState = null;
-let materials = [];
-let selectedMaterial = null;
-let timerInterval = null;
-let eliminated = false;
-let currentScreen = screens.welcome; // Track current screen
+let gameState = null; // Guarda el último estado recibido del servidor
+let currentScreen = screens.welcome;
+let selectedMineralInstanceIds = []; // IDs de los minerales seleccionados del inventario
+let turnTimerInterval = null; // Intervalo para el timer de turno
+const MIN_WEIGHT = 1; // Constante para validación
+const MAX_WEIGHT = 20; // Constante para validación
+const MINERAL_TYPES = ['Rojo', 'Amarillo', 'Verde', 'Azul', 'Purpura']; // Para formulario
 
-// --- Funciones de Utilidad con Anime.js ---
 
-// Función showScreen mejorada con Anime.js para transiciones
+// --- Funciones de Utilidad y UI ---
+
 function showScreen(screenElement) {
-    if (currentScreen === screenElement) return; // No animar si ya está visible
+    if (!screenElement || currentScreen === screenElement) return;
+    console.log(`Switching screen to: ${screenElement.id}`);
 
     const outgoingScreen = currentScreen;
     currentScreen = screenElement;
 
-    // 1. Animar la pantalla saliente para que desaparezca
     anime({
         targets: outgoingScreen,
         opacity: [1, 0],
-        translateY: [0, -20], // Sube ligeramente al desaparecer
-        scale: [1, 0.95],
-        duration: 300,
+        duration: 200,
         easing: 'easeInQuad',
         complete: () => {
-            outgoingScreen.classList.remove('active'); // Ocultar después de animar
+            outgoingScreen.classList.remove('active');
+            outgoingScreen.style.display = 'none';
 
-            // 2. Preparar y mostrar la pantalla entrante (inicialmente invisible)
+            screenElement.style.opacity = 0;
             screenElement.classList.add('active');
-            screenElement.style.opacity = 0; // Asegurar que está invisible antes de animar
+            screenElement.style.display = 'flex';
 
-            // 3. Animar la pantalla entrante para que aparezca
             anime({
                 targets: screenElement,
                 opacity: [0, 1],
-                translateY: [20, 0], // Baja ligeramente al aparecer
-                scale: [0.95, 1],
-                duration: 400,
+                duration: 300,
                 easing: 'easeOutQuad',
-                delay: 50 // Pequeña pausa antes de entrar
             });
-
-            // Animar elementos internos si es necesario (ej: listas en pantallas de resultado)
-            if (screenElement === screens.turnResult) {
-                anime({
-                    targets: '#turn-summary-list li',
-                    opacity: [0, 1],
-                    translateY: [10, 0],
-                    delay: anime.stagger(80, { start: 200 })
-                });
-            } else if (screenElement === screens.finalResults) {
-                 anime({
-                    targets: ['.winners-container', '.final-scale-status', '.eliminated-players', '#play-again-btn'],
-                    opacity: [0, 1],
-                    translateY: [20, 0],
-                    delay: anime.stagger(100, { start: 300 })
-                });
-                 anime({
-                    targets: ['#winners-list li', '#eliminated-list li'],
-                    opacity: [0, 1],
-                    translateX: [-20, 0],
-                    delay: anime.stagger(60, { start: 500 })
-                });
-            }
+             if (screenElement === screens.game && gameState) {
+                 updateGameUI(gameState);
+             }
+             // Log para confirmar finalización
+             console.log(`showScreen: Transition to ${screenElement.id} complete.`);
         }
     });
 }
 
-
-// Función para mostrar modales con animación
 function showModal(modalElement) {
-    modalElement.classList.add('active'); // Usa la clase CSS para transición
+    if (!modalElement) return;
     const modalContent = modalElement.querySelector('.modal-content');
-
-    // Reiniciar estado antes de animar (por si se cerró bruscamente)
-    anime.set(modalElement, { opacity: 0 });
-    anime.set(modalContent, { opacity: 0, scale: 0.9, translateY: -20 });
-
-    modalElement.style.display = 'block'; // Hacer visible
-
-    // Animar el fondo del modal
-    anime({
-        targets: modalElement,
-        opacity: [0, 1],
-        duration: 300,
-        easing: 'easeOutQuad'
-    });
-
-    // Animar el contenido del modal
-    anime({
-        targets: modalContent,
-        opacity: [0, 1],
-        scale: [0.9, 1],
-        translateY: [-20, 0],
-        duration: 400,
-        easing: 'easeOutBack', // Efecto rebote suave
-        delay: 100
-    });
+    anime.set(modalElement, { display: 'block', opacity: 0 });
+    anime.set(modalContent, { opacity: 0, scale: 0.9 });
+    anime({ targets: modalElement, opacity: 1, duration: 300, easing: 'easeOutQuad' });
+    anime({ targets: modalContent, opacity: 1, scale: 1, duration: 400, delay: 50, easing: 'easeOutBack' });
 }
 
-// Función para ocultar modales con animación
 function hideModal(modalElement) {
+    if (!modalElement) return;
     const modalContent = modalElement.querySelector('.modal-content');
-
-    // Animar el contenido hacia afuera
+    anime({ targets: modalContent, opacity: 0, scale: 0.9, duration: 300, easing: 'easeInQuad' });
     anime({
-        targets: modalContent,
-        opacity: [1, 0],
-        scale: [1, 0.9],
-        translateY: [0, -20],
-        duration: 300,
-        easing: 'easeInQuad'
-    });
-
-    // Animar el fondo hacia afuera y ocultar al final
-    anime({
-        targets: modalElement,
-        opacity: [1, 0],
-        duration: 350,
-        easing: 'easeInQuad',
-        delay: 50, // Esperar un poco a que el contenido empiece a salir
-        complete: () => {
-            modalElement.style.display = 'none';
-            modalElement.classList.remove('active');
-        }
+        targets: modalElement, opacity: 0, duration: 350, delay: 50, easing: 'easeInQuad',
+        complete: () => modalElement.style.display = 'none'
     });
 }
 
-// Modificar las funciones de notificación para usar los modales animados
 function showNotification(message) {
-    notificationMessage.textContent = message;
+    if(notificationMessage) notificationMessage.textContent = message;
     showModal(notificationModal);
 }
 
-function showEliminationModal() {
-    showModal(eliminationModal);
-}
-
-
 function formatWeight(weight) {
-    return Math.abs(weight).toFixed(1);
+    return (typeof weight === 'number') ? weight.toFixed(0) : '0'; // Pesos enteros
 }
 
-// Función de la balanza mejorada con Anime.js
-function updateScaleDisplay(leftWeightValue, rightWeightValue) {
-    // Actualizar los textos (se puede animar el número si se desea con Anime.js)
-    leftWeight.textContent = formatWeight(leftWeightValue);
-    rightWeight.textContent = formatWeight(rightWeightValue);
-
-    const difference = leftWeightValue - rightWeightValue;
-    const maxAngle = 20; // Reducir ángulo máximo para sutileza
-    const sensitivityFactor = 0.4; // Ajustar sensibilidad
-
-    let angle = 0;
-    const absDifference = Math.abs(difference);
-
-    // Solo inclinar si la diferencia es significativa (mayor que el umbral de equilibrio)
-    if (absDifference > 10) { // Umbral de 10g para equilibrio visual
-         // Aplicar una curva para que pequeñas diferencias muevan poco y grandes diferencias más
-         // Usamos Math.tanh para una curva sigmoide suave
-         const normalizedDiff = Math.tanh(difference * sensitivityFactor / 50) * maxAngle; // Dividir por un valor (ej. 50) para escalar
-         angle = normalizedDiff;
-    } else {
-        // Pequeña inclinación proporcional dentro de la zona de equilibrio
-        angle = difference * sensitivityFactor * (maxAngle / 50); // Mantener la misma escala
+// Actualiza UNA balanza (principal o secundaria) - CON UMBRAL DEFINIDO
+function updateSingleScaleDisplay(scalePrefix, scaleData) {
+    if (!scaleData) {
+        console.warn(`updateSingleScaleDisplay: No scaleData provided for ${scalePrefix}`);
+        return;
     }
+    const scaleArm = document.getElementById(`${scalePrefix}-scale-arm`);
+    const leftWeightEl = document.getElementById(`${scalePrefix}-left-weight`);
+    const rightWeightEl = document.getElementById(`${scalePrefix}-right-weight`);
+    const leftMaterialsEl = document.getElementById(`${scalePrefix}-left-materials`);
+    const rightMaterialsEl = document.getElementById(`${scalePrefix}-right-materials`);
 
-    // Limitar el ángulo máximo
-    angle = Math.min(Math.max(-maxAngle, angle), maxAngle);
+    const leftWeight = scaleData.leftWeight || 0;
+    const rightWeight = scaleData.rightWeight || 0;
 
+    const threshold = 1; // Definir el umbral de equilibrio (ej: 1g o menos)
 
-    // Animar la rotación del brazo de la balanza
-    anime({
-        targets: scaleArm,
-        rotate: [parseFloat(scaleArm.style.transform.replace(/[^0-9.-]/g, '') || 0), angle], // Animar desde ángulo actual
-        duration: 1200, // Duración más larga para suavidad
-        easing: 'easeOutElastic(1, .7)', // Efecto elástico agradable
-    });
-}
+    if(leftWeightEl) leftWeightEl.textContent = formatWeight(leftWeight);
+    if(rightWeightEl) rightWeightEl.textContent = formatWeight(rightWeight);
 
+    renderScaleMaterialsStack(leftMaterialsEl, scaleData.leftMaterials || []);
+    renderScaleMaterialsStack(rightMaterialsEl, scaleData.rightMaterials || []);
 
-function getRandomColor() {
-    // Paleta de colores más vibrante y consistente
-    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FED766', '#9B5DE5', '#F15BB5', '#00F5D4', '#00BBF9', '#FEE440', '#F7B801'];
-    return colors[Math.floor(Math.random() * colors.length)];
-}
+    if (scaleArm) {
+        const difference = leftWeight - rightWeight;
+        const maxAngle = 15;
+        const sensitivity = 0.2;
 
-// Función para renderizar materiales con animación de entrada
-function renderMaterials(availableMaterials) {
-    materialsContainer.innerHTML = ''; // Limpiar contenedor
-
-    availableMaterials.forEach(material => {
-        const materialButton = document.createElement('button');
-        materialButton.className = `material-button ${material.type.toLowerCase()}`;
-        materialButton.textContent = `${material.type} (${material.weight}g)`;
-        materialButton.dataset.id = material.id;
-        materialButton.dataset.type = material.type;
-        materialButton.dataset.weight = material.weight;
-        materialButton.style.opacity = 0; // Estilo inicial para animación
-
-        materialButton.addEventListener('click', () => {
-            // Deseleccionar anterior
-             const currentlySelected = document.querySelector(`.material-button.selected-material`);
-             if (currentlySelected && currentlySelected !== materialButton) {
-                 currentlySelected.classList.remove('selected-material');
-                 // Animar deselección
-                 anime({ targets: currentlySelected, scale: 1, borderColor: 'transparent', duration: 200, easing: 'easeOutQuad' });
-             }
-
-            // Seleccionar nuevo
-            selectedMaterial = {
-                id: material.id,
-                type: material.type,
-                weight: material.weight
-            };
-            materialButton.classList.add('selected-material');
-            sideSelection.classList.remove('hidden');
-
-             // Animar selección
-             anime({ targets: materialButton, scale: 1.08, borderColor: 'var(--accent-color)', duration: 300, easing: 'easeOutBack' });
-
-            // Animar la aparición del panel de selección de lado
-            anime({
-                targets: sideSelection,
-                opacity: [0, 1],
-                translateY: [10, 0],
-                duration: 300,
-                easing: 'easeOutQuad'
-            });
-             document.getElementById('selected-material-name').textContent = `${material.type} (${material.weight}g)`;
-        });
-
-        materialsContainer.appendChild(materialButton);
-    });
-
-    // Animar la entrada de todos los botones de material
-    anime({
-        targets: '.material-button',
-        opacity: [0, 1],
-        scale: [0.7, 1],
-        translateY: [10, 0],
-        delay: anime.stagger(40), // Aparecen escalonados
-        duration: 500,
-        easing: 'easeOutExpo'
-    });
-}
-
-
-function renderTeams(teams) {
-    teamsContainer.innerHTML = '';
-    teams.forEach(team => {
-        const teamBox = document.createElement('div');
-        teamBox.className = 'team-box';
-        teamBox.textContent = `Equipo ${team.id}: ${team.players.join(', ')}`;
-        const teamColor = getRandomColor(); // Obtener un color
-        teamBox.style.borderLeft = `5px solid ${teamColor}`;
-        teamBox.style.setProperty('--team-color', teamColor); // Guardar color para posible hover
-        teamBox.style.opacity = 0; // Inicial para animación
-        teamsContainer.appendChild(teamBox);
-    });
-
-     // Animar entrada de equipos
-    anime({
-        targets: '.team-box',
-        opacity: [0, 1],
-        translateX: [-15, 0],
-        delay: anime.stagger(60),
-        duration: 400,
-        easing: 'easeOutQuad'
-    });
-}
-
-// Renderiza materiales en la balanza con animación
-function renderScaleMaterials(side, materialsList) {
-    const container = side === 'left' ? leftMaterials : rightMaterials;
-    const existingMaterialElements = container.querySelectorAll('.material-item');
-    const existingMaterialIds = Array.from(existingMaterialElements).map(el => el.dataset.id);
-    const newMaterials = [];
-
-    // Crear elementos para materiales nuevos y marcar existentes
-    materialsList.forEach(material => {
-        if (!existingMaterialIds.includes(material.id)) {
-            const materialItem = document.createElement('div');
-            materialItem.className = `material-item ${material.type.toLowerCase()}`;
-            materialItem.textContent = material.type; // Solo tipo para simplicidad visual
-            materialItem.dataset.id = material.id; // Añadir ID para seguimiento
-            materialItem.style.opacity = 0; // Inicial para animación
-            materialItem.style.transform = 'translateY(15px)'; // Empieza desde abajo
-            container.appendChild(materialItem);
-            newMaterials.push(materialItem);
+        let angle = 0;
+        if (Math.abs(difference) > threshold) {
+            angle = Math.sign(difference) * Math.min(maxAngle, Math.abs(difference) * sensitivity);
         }
-    });
 
-    // Animar solo los nuevos materiales
-    if (newMaterials.length > 0) {
-        anime({
-            targets: newMaterials,
-            opacity: [0, 1],
-            translateY: [15, 0],
-            duration: 600,
-            delay: anime.stagger(50), // Escalonar si hay varios (poco probable aquí)
-            easing: 'easeOutExpo'
-        });
-    }
-}
-
-
-function updateGameUI(gameState) {
-    // Actualizar información del turno
-    currentTurn.textContent = gameState.currentTurn;
-    currentPlayer.textContent = gameState.currentPlayer?.name || '-';
-    waitingPlayer.textContent = gameState.currentPlayer?.name || '-';
-
-    // Actualizar balanza (pesos y animación del brazo)
-    updateScaleDisplay(gameState.leftWeight, gameState.rightWeight);
-    // Renderizar materiales en la balanza (con animación para nuevos)
-    renderScaleMaterials('left', gameState.leftMaterials);
-    renderScaleMaterials('right', gameState.rightMaterials);
-
-    // Actualizar equipos (con animación si es la primera vez)
-    if (gameState.teams && gameState.teams.length > 0 && teamsContainer.children.length === 0) {
-        renderTeams(gameState.teams);
-    }
-
-     // Control de visibilidad y animación para "Es tu turno" / "Esperando"
-    const isMyTurnNow = gameState.currentPlayer && gameState.currentPlayer.id === playerId && !eliminated;
-    const turnNotification = document.getElementById('is-your-turn');
-    const waitingNotification = document.getElementById('waiting-turn');
-
-    if (isMyTurnNow) {
-        if (waitingNotification.classList.contains('active-notification')) {
+        const currentRotation = anime.get(scaleArm, 'rotate', 'deg') || 0;
+        if (Math.abs(currentRotation - angle) > 0.1) {
              anime({
-                 targets: waitingNotification,
-                 opacity: 0,
-                 duration: 200,
-                 easing: 'linear',
-                 complete: () => {
-                     waitingNotification.classList.add('hidden');
-                     waitingNotification.classList.remove('active-notification');
-                     turnNotification.classList.remove('hidden');
-                     turnNotification.classList.add('active-notification');
-                     anime({ targets: turnNotification, opacity: [0, 1], scale: [0.9, 1], duration: 400, easing: 'easeOutBack' });
-                 }
-             });
-        } else if (!turnNotification.classList.contains('active-notification')) {
-            turnNotification.classList.remove('hidden');
-            turnNotification.classList.add('active-notification');
-            anime({ targets: turnNotification, opacity: [0, 1], scale: [0.9, 1], duration: 400, easing: 'easeOutBack' });
+                targets: scaleArm,
+                rotate: [currentRotation, angle],
+                duration: 800,
+                easing: 'easeOutElastic(1, .7)'
+            });
+        } else {
+            anime.set(scaleArm, { rotate: angle });
         }
-        skipTurnBtn.classList.remove('hidden');
-        renderMaterials(gameState.availableMaterials || []); // Renderizar materiales con animación
-    } else {
-         if (turnNotification.classList.contains('active-notification')) {
-              anime({
-                 targets: turnNotification,
-                 opacity: 0,
-                 duration: 200,
-                 easing: 'linear',
-                 complete: () => {
-                     turnNotification.classList.add('hidden');
-                     turnNotification.classList.remove('active-notification');
-                     waitingNotification.classList.remove('hidden');
-                     waitingNotification.classList.add('active-notification');
-                     anime({ targets: waitingNotification, opacity: [0, 1], duration: 400, easing: 'easeOutQuad' });
-                 }
-             });
-         } else if (!waitingNotification.classList.contains('active-notification')) {
-             waitingNotification.classList.remove('hidden');
-             waitingNotification.classList.add('active-notification');
-             anime({ targets: waitingNotification, opacity: [0, 1], duration: 400, easing: 'easeOutQuad' });
-         }
-        skipTurnBtn.classList.add('hidden');
-        sideSelection.classList.add('hidden');
-        materialsContainer.innerHTML = ''; // Limpiar materiales si no es tu turno
     }
 
+    if (scalePrefix === 'main') {
+        const isBalanced = Math.abs(leftWeight - rightWeight) <= threshold;
+        if (mainBalanceStatus) mainBalanceStatus.textContent = isBalanced ? '(Equilibrada)' : '(Desequilibrada)';
 
-    // Reiniciar timer (sin cambios en la lógica, solo visual)
-    if (timerInterval) {
-        clearInterval(timerInterval);
-    }
-    if (gameState.turnActive) {
-        let timeLeft = 30;
-        timer.textContent = timeLeft;
-        anime({ // Animar el contenedor del timer para llamar la atención
-            targets: '.timer-container',
-            scale: [1, 1.1, 1],
-            duration: 500,
-            easing: 'easeInOutSine'
-        });
-
-        timerInterval = setInterval(() => {
-            timeLeft--;
-            timer.textContent = timeLeft;
-             // Animar cambio de número
-            anime({ targets: timer, scale: [1.2, 1], duration: 300, easing: 'easeOutQuad' });
-
-            if (timeLeft <= 5 && timeLeft > 0) { // Parpadeo en los últimos segundos
-                 anime({ targets: timer, color: ['#FF6B6B', '#E6E6E6'], duration: 500, direction: 'alternate', loop: true, easing: 'linear'});
-            } else if (timeLeft === 0) {
-                 anime.remove(timer); // Detener animación de parpadeo
-                 timer.style.color = ''; // Resetear color
-            }
-
-            if (timeLeft <= 0) {
-                clearInterval(timerInterval);
-                // El servidor maneja el timeout
-            }
-        }, 1000);
-    } else {
-         timer.textContent = '-';
-         anime.remove(timer); // Detener animación si el turno no está activo
-         timer.style.color = ''; // Resetear color
+        if (guessWeightsBtn && gameState) {
+             const canGuessNow = isBalanced && gameState.myTurn && gameState.iCanGuess;
+             guessWeightsBtn.disabled = !canGuessNow;
+             guessWeightsBtn.title = canGuessNow ? "Adivinar pesos de todos los minerales" : (
+                !isBalanced ? "La balanza principal debe estar equilibrada" :
+                !gameState.myTurn ? "No es tu turno" :
+                !gameState.iCanGuess ? "Ya no puedes adivinar (revisa piezas/minerales)" : "Condición desconocida"
+             );
+        }
     }
 }
 
+// Renderiza los divs de materiales en una pila específica
+function renderScaleMaterialsStack(container, materialsList) {
+    if (!container) return;
+    const fragment = document.createDocumentFragment();
+    const itemsToAnimate = [];
+    const existingElementsMap = new Map();
+    container.childNodes.forEach(node => {
+        if (node.dataset && node.dataset.instanceId) {
+            existingElementsMap.set(node.dataset.instanceId, node);
+        }
+    });
 
-function startGame() {
-    if (isHost) {
-        // Añadir pequeña animación al botón al hacer clic
-        anime({ targets: startGameBtn, scale: [1, 0.95, 1], duration: 300, easing: 'easeInOutQuad' });
+    materialsList.forEach(mat => {
+        const div = document.createElement('div');
+        const typeClass = mat.type ? mat.type.toLowerCase() : 'desconocido';
+        div.className = `material-item ${typeClass}`;
+        div.textContent = `${mat.type || '?'} (${formatWeight(mat.weight)}g)`;
+        div.dataset.instanceId = mat.instanceId;
+
+        if (!existingElementsMap.has(mat.instanceId)) {
+             div.style.opacity = 0;
+             div.style.transform = 'translateY(5px) scale(0.9)';
+             itemsToAnimate.push(div);
+        }
+        fragment.appendChild(div);
+    });
+
+     container.innerHTML = '';
+     container.appendChild(fragment);
+
+     if (itemsToAnimate.length > 0) {
+         anime({
+             targets: itemsToAnimate,
+             opacity: [0, 1],
+             translateY: [5, 0],
+             scale: [0.9, 1],
+             delay: anime.stagger(50),
+             duration: 400,
+             easing: 'easeOutExpo'
+         });
+     }
+}
+
+
+// Renderiza el inventario del jugador con selección múltiple
+function renderPlayerInventory(inventory) {
+    if (!myInventoryContainer) return;
+    myInventoryContainer.innerHTML = '';
+
+    const previouslySelected = new Set(selectedMineralInstanceIds);
+    selectedMineralInstanceIds = [];
+
+    if (!Array.isArray(inventory) || inventory.length === 0) {
+        myInventoryContainer.innerHTML = '<p class="info-text">No te quedan minerales.</p>';
+        if (myMineralCount) myMineralCount.textContent = '0';
+        if(cannotPlaceMessage) cannotPlaceMessage.classList.remove('hidden');
+        updatePlacementControls();
+        return;
+    }
+
+    if(cannotPlaceMessage) cannotPlaceMessage.classList.add('hidden');
+    if (myMineralCount) myMineralCount.textContent = inventory.length;
+
+    inventory.forEach(mineral => {
+        const button = document.createElement('button');
+        const typeClass = mineral.type ? mineral.type.toLowerCase() : 'desconocido';
+        button.className = `material-button inventory-item ${typeClass}`;
+        button.textContent = `${mineral.type || '?'} (${formatWeight(mineral.weight)}g)`;
+        button.dataset.instanceId = mineral.instanceId;
+        button.disabled = !(gameState?.myTurn && gameState?.iCanPlaceMinerals);
+
+        if (previouslySelected.has(mineral.instanceId)) {
+             button.classList.add('selected-material');
+             if (!button.disabled) {
+                selectedMineralInstanceIds.push(mineral.instanceId);
+             }
+        }
+
+        button.addEventListener('click', () => {
+            if (button.disabled) return;
+
+            button.classList.toggle('selected-material');
+            const id = mineral.instanceId;
+            const isSelected = button.classList.contains('selected-material');
+
+            if (isSelected) {
+                if (!selectedMineralInstanceIds.includes(id)) selectedMineralInstanceIds.push(id);
+            } else {
+                selectedMineralInstanceIds = selectedMineralInstanceIds.filter(selId => selId !== id);
+            }
+            updatePlacementControls();
+        });
+        myInventoryContainer.appendChild(button);
+    });
+
+    updatePlacementControls();
+}
+
+// Actualiza la sección de controles de colocación
+function updatePlacementControls() {
+    if (!placementControlsSection) return;
+    const count = selectedMineralInstanceIds.length;
+    const canPlaceNow = count >= 2 && gameState?.myTurn && gameState?.iCanPlaceMinerals;
+
+    placementControlsSection.classList.toggle('hidden', count === 0 || !gameState?.myTurn);
+
+    if (selectedCountSpan) selectedCountSpan.textContent = count;
+    if (placeSelectedBtn) placeSelectedBtn.disabled = !canPlaceNow;
+    if (placementError) placementError.classList.toggle('hidden', count >= 2 || count === 0);
+
+    if(targetScaleSelect) targetScaleSelect.disabled = count === 0;
+    if(targetSideSelect) targetSideSelect.disabled = count === 0;
+}
+
+// Función PRINCIPAL para actualizar TODA la UI (CORREGIDA - Usa gameState.currentPlayer)
+function updateGameUI(newState) {
+    if (!newState) {
+        console.warn("updateGameUI llamado sin estado válido.");
+        return;
+    }
+    gameState = newState;
+
+    console.log("Updating UI - CurrentPlayer from state:", gameState.currentPlayer);
+
+    const currentPlayer = gameState.currentPlayer;
+
+    if (currentPlayerIndicator) {
+        currentPlayerIndicator.textContent = currentPlayer
+            ? `${currentPlayer.name} (T${currentPlayer.turnOrder})`
+            : (gameState.status.startsWith('finished') ? 'Juego Terminado' : 'Esperando...');
+    } else { console.warn("Elemento 'currentPlayerIndicator' no encontrado."); }
+
+    if (knownInfoText) {
+         knownInfoText.textContent = gameState.knownMineralInfo?.description || '-';
+    } else { console.warn("Elemento 'knownInfoText' no encontrado."); }
+
+    if (lastGuessInfoCard) {
+        const lastGuess = gameState.lastGuessResult;
+        const guesserInfo = lastGuess ? gameState.playersPublicInfo?.find(p => p.id === lastGuess.playerId) : null;
+        if (lastGuess && !lastGuess.correct && guesserInfo) {
+             if (lastGuessText) lastGuessText.textContent = `El intento de ${guesserInfo.name} fue incorrecto.`;
+             lastGuessInfoCard.classList.remove('hidden');
+        } else {
+            lastGuessInfoCard.classList.add('hidden');
+        }
+    }
+
+    updateSingleScaleDisplay('main', gameState.mainScale);
+    updateSingleScaleDisplay('secondary', gameState.secondaryScale);
+
+    if (myTurnIndicator) myTurnIndicator.classList.toggle('hidden', !gameState.myTurn);
+    if (waitingTurnIndicator) waitingTurnIndicator.classList.toggle('hidden', gameState.myTurn || gameState.status !== 'playing');
+
+    renderPlayerInventory(gameState.myInventory || []);
+
+    if(cannotPlaceMessage) cannotPlaceMessage.classList.toggle('hidden', gameState.iCanPlaceMinerals ?? true);
+
+    if (gamePlayersList) {
+        gamePlayersList.innerHTML = '';
+        gameState.playersPublicInfo?.forEach(p => {
+            const li = document.createElement('li');
+            li.className = p.isActive ? 'player-active' : 'player-inactive';
+            if (p.id === playerId) li.classList.add('my-player-row');
+            if (p.id === gameState.currentPlayer?.id) li.classList.add('current-player-row');
+
+             const mineralCountDisplay = (typeof p.mineralCount === 'number') ? p.mineralCount : '?';
+
+            li.innerHTML = `
+                <span class="player-order">${p.turnOrder || '?'}</span>.
+                <span class="player-name">${p.name || '??'} ${p.id === playerId ? '(Tú)' : ''}</span>
+                <span class="player-minerals">(<i class="fas fa-gem"></i> ${mineralCountDisplay})</span>
+                ${!p.isActive ? '<span class="player-status">(Desc.)</span>' : ''}
+                ${p.isActive && !(p.canPlaceMinerals ?? true) ? '<span class="player-status">(No Juega)</span>' : ''}
+                ${p.id === gameState.currentPlayer?.id ? '<i class="fas fa-star player-turn-star"></i>' : ''}
+            `;
+            gamePlayersList.appendChild(li);
+        });
+    } else { console.warn("Elemento 'gamePlayersList' no encontrado."); }
+
+    if (turnTimerInterval) clearInterval(turnTimerInterval);
+    turnTimerInterval = null;
+    if (gameState.myTurn && gameState.status === 'playing') {
+        startTurnTimer(5 * 60);
+    } else {
+         if (gameTimer) gameTimer.textContent = '--:--';
+         if (gameTimer) gameTimer.classList.remove('timer-alert');
+    }
+}
+
+// Inicia el temporizador de turno
+function startTurnTimer(durationSeconds) {
+    let remaining = durationSeconds;
+    if (!gameTimer) return;
+
+    const updateDisplay = () => {
+        if(!gameTimer) return;
+        const minutes = Math.floor(remaining / 60);
+        const seconds = remaining % 60;
+        gameTimer.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        gameTimer.classList.toggle('timer-alert', remaining <= 30 && remaining > 0);
+    };
+
+    updateDisplay();
+    turnTimerInterval = setInterval(() => {
+        remaining--;
+        updateDisplay();
+        if (remaining < 0) {
+            clearInterval(turnTimerInterval);
+            turnTimerInterval = null;
+            console.log("¡Tiempo de turno agotado!");
+        }
+    }, 1000);
+}
+
+
+// --- Event Listeners de Controles del Cliente ---
+
+// Navegación inicial
+createBtn?.addEventListener('click', () => showScreen(screens.create));
+joinBtn?.addEventListener('click', () => showScreen(screens.join));
+backFromCreateBtn?.addEventListener('click', () => showScreen(screens.welcome));
+backFromJoinBtn?.addEventListener('click', () => showScreen(screens.welcome));
+
+// Copiar código
+copyCodeBtn?.addEventListener('click', () => {
+    const code = waitGameCodeDisplay?.textContent;
+    if (code && code !== '------' && navigator.clipboard) {
+        navigator.clipboard.writeText(code)
+            .then(() => showNotification('Código copiado: ' + code))
+            .catch(err => showNotification('Error al copiar el código.'));
+    }
+});
+
+// Crear Juego
+createForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const hostNameInput = document.getElementById('host-name');
+    const hostName = hostNameInput?.value.trim();
+    const submitBtn = createForm.querySelector('button[type="submit"]');
+
+    if (hostName && submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando...';
+        socket.emit('createGame', { hostName }, (response) => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-check"></i> Crear';
+            if (response?.success) {
+                gameId = response.gameId;
+                playerId = response.playerId;
+                isHost = true;
+                if(waitGameCodeDisplay) waitGameCodeDisplay.textContent = response.gameCode;
+                showScreen(screens.waiting);
+                if(hostInstructions) hostInstructions.classList.remove('hidden');
+                if(startGameBtn) startGameBtn.classList.remove('hidden');
+                if(playerWaitMessage) playerWaitMessage.classList.add('hidden');
+                if(waitPlayersList) waitPlayersList.innerHTML = `<li>1. ${hostName} (Host)</li>`;
+                if(waitPlayerCount) waitPlayerCount.textContent = '1';
+                if(startGameBtn) startGameBtn.disabled = true; // Requiere mínimo 2 jugadores
+            } else {
+                showNotification(response?.message || 'Error al crear juego.');
+            }
+        });
+    } else if (!hostName){
+         showNotification("Ingresa tu nombre.");
+    }
+});
+
+// Unirse a Juego
+joinForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const gameCodeInput = document.getElementById('join-game-code');
+    const playerNameInput = document.getElementById('join-player-name');
+    const gameCode = gameCodeInput?.value.trim().toUpperCase();
+    const playerName = playerNameInput?.value.trim();
+    const submitBtn = joinForm.querySelector('button[type="submit"]');
+
+    if (gameCode && playerName && submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uniéndose...';
+        socket.emit('joinGame', { gameCode, playerName }, (response) => {
+             submitBtn.disabled = false;
+             submitBtn.innerHTML = '<i class="fas fa-door-open"></i> Unirse';
+             if (response?.success) {
+                 gameId = response.gameId;
+                 playerId = response.playerId;
+                 isHost = false;
+                 if(waitGameCodeDisplay) waitGameCodeDisplay.textContent = gameCode;
+                 showScreen(screens.waiting);
+                 if(hostInstructions) hostInstructions.classList.add('hidden');
+                 if(startGameBtn) startGameBtn.classList.add('hidden');
+                 if(playerWaitMessage) playerWaitMessage.classList.remove('hidden');
+             } else {
+                 showNotification(response?.message || 'Error al unirse al juego.');
+             }
+        });
+    } else {
+         showNotification("Ingresa el código y tu nombre.");
+    }
+});
+
+// Iniciar Juego (Host)
+startGameBtn?.addEventListener('click', () => {
+    if (isHost && gameId && !startGameBtn.disabled) {
+        console.log("Host iniciando juego...");
+        startGameBtn.disabled = true;
+        startGameBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Iniciando...';
         socket.emit('startGame', { gameId });
     }
-}
-
-function placeMaterial(side) {
-    if (!selectedMaterial) return;
-
-    // Animación de feedback al seleccionar lado
-    const targetButton = side === 'left' ? selectLeftBtn : selectRightBtn;
-    anime({ targets: targetButton, scale: [1, 0.9, 1], duration: 250, easing: 'easeInOutQuad' });
-
-    socket.emit('placeMaterial', {
-        gameId,
-        playerId,
-        materialId: selectedMaterial.id,
-        side: side
-    });
-
-     // Deseleccionar visualmente el material elegido
-    const selectedButton = document.querySelector(`.material-button[data-id="${selectedMaterial.id}"]`);
-    if (selectedButton) {
-        selectedButton.classList.remove('selected-material');
-        anime({ targets: selectedButton, scale: 1, borderColor: 'transparent', duration: 200, easing: 'easeOutQuad' });
-        // Opcional: Animar el botón desapareciendo
-        // anime({ targets: selectedButton, opacity: 0, scale: 0.8, duration: 300, easing: 'easeInQuad' });
-    }
-
-
-    selectedMaterial = null;
-     // Ocultar panel de selección de lado con animación
-     anime({
-        targets: sideSelection,
-        opacity: 0,
-        translateY: -10,
-        duration: 200,
-        easing: 'easeInQuad',
-        complete: () => sideSelection.classList.add('hidden')
-    });
-    // Opcional: Podríamos deshabilitar los controles aquí hasta recibir 'turnResult'
-}
-
-function skipTurn() {
-    // Animación de feedback
-    anime({ targets: skipTurnBtn, scale: [1, 0.95, 1], duration: 300, easing: 'easeInOutQuad' });
-    socket.emit('skipTurn', {
-        gameId,
-        playerId
-    });
-    // Opcional: Deshabilitar controles
-}
-
-// --- Eventos de Navegación (sin cambios en la lógica, solo llamadas a showScreen) ---
-createGameBtn.addEventListener('click', () => showScreen(screens.create));
-joinGameBtn.addEventListener('click', () => showScreen(screens.join));
-backFromCreateBtn.addEventListener('click', () => showScreen(screens.welcome));
-backFromJoinBtn.addEventListener('click', () => showScreen(screens.welcome)); // Corregido para volver a welcome
-
-copyCodeBtn.addEventListener('click', () => {
-    const code = gameCodeDisplay.textContent;
-    navigator.clipboard.writeText(code)
-        .then(() => {
-             anime({ targets: copyCodeBtn, color: ['#E6E6E6', '#33FF57', '#E6E6E6'], duration: 1000}); // Feedback visual
-            showNotification('¡Código copiado!');
-        })
-        .catch(() => showNotification('No se pudo copiar el código'));
 });
 
-startGameBtn.addEventListener('click', startGame);
-selectLeftBtn.addEventListener('click', () => placeMaterial('left'));
-selectRightBtn.addEventListener('click', () => placeMaterial('right'));
+// Colocar Minerales Seleccionados
+placeSelectedBtn?.addEventListener('click', () => {
+    if (placeSelectedBtn.disabled) return;
 
-cancelSelectionBtn.addEventListener('click', () => {
-    // Deseleccionar material visualmente con animación
-    const currentlySelected = document.querySelector(`.material-button.selected-material`);
-    if (currentlySelected) {
-        currentlySelected.classList.remove('selected-material');
-        anime({ targets: currentlySelected, scale: 1, borderColor: 'transparent', duration: 200, easing: 'easeOutQuad' });
-    }
-    selectedMaterial = null;
+    const placements = selectedMineralInstanceIds.map(instanceId => ({
+        mineralInstanceId: instanceId,
+        targetScale: targetScaleSelect?.value || 'main',
+        targetSide: targetSideSelect?.value || 'left'
+    }));
 
-    // Ocultar panel de selección con animación
-    anime({
-        targets: sideSelection,
-        opacity: 0,
-        translateY: -10,
-        duration: 200,
-        easing: 'easeInQuad',
-        complete: () => sideSelection.classList.add('hidden')
-    });
+    console.log("Intentando colocar:", placements);
+    socket.emit('placeMinerals', { gameId, playerId, placements });
+
+    placeSelectedBtn.disabled = true;
+    cancelPlacementBtn.disabled = true;
+    myInventoryContainer?.querySelectorAll('.inventory-item').forEach(btn => btn.disabled = true);
 });
 
-skipTurnBtn.addEventListener('click', skipTurn);
+// Limpiar Selección de Minerales
+cancelPlacementBtn?.addEventListener('click', () => {
+    selectedMineralInstanceIds = [];
+    myInventoryContainer?.querySelectorAll('.selected-material').forEach(btn => {
+        btn.classList.remove('selected-material');
+    });
+    updatePlacementControls();
+});
 
-nextTurnBtn.addEventListener('click', () => {
-    // Animar botón antes de cambiar de pantalla
-    anime({ targets: nextTurnBtn, scale: [1, 0.95, 1], duration: 250, easing: 'easeInOutQuad' }).finished.then(() => {
-        if (gameState.gameEnded) {
-            showScreen(screens.finalResults);
+// Abrir Modal de Adivinanza
+guessWeightsBtn?.addEventListener('click', () => {
+    if (guessWeightsBtn.disabled) return;
+    guessForm?.reset();
+    guessForm?.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
+    showModal(guessModal);
+});
+
+// Enviar Adivinanza
+guessForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const guesses = {};
+    let formIsValid = true;
+    MINERAL_TYPES.forEach(type => {
+        const input = guessForm.elements[type];
+        const value = parseInt(input?.value);
+        input?.classList.remove('input-error');
+        if (isNaN(value) || value < MIN_WEIGHT || value > MAX_WEIGHT) {
+             formIsValid = false;
+             input?.classList.add('input-error');
         } else {
-            showScreen(screens.game);
-            // Avisar al servidor que estamos listos para el estado actualizado
-            socket.emit('readyForNextTurn', { gameId, playerId });
+            guesses[type] = value;
         }
     });
+
+    if (!formIsValid) {
+        showNotification(`Ingresa pesos válidos (${MIN_WEIGHT}-${MAX_WEIGHT}g) para todos los minerales.`);
+        return;
+    }
+
+    console.log("Enviando adivinanza:", guesses);
+    socket.emit('guessWeights', { gameId, playerId, guesses });
+    hideModal(guessModal);
+    if(guessWeightsBtn) guessWeightsBtn.disabled = true;
 });
 
-playAgainBtn.addEventListener('click', () => {
-     // Animar antes de recargar
-    anime({
+// Jugar Otra Vez (Recargar)
+playAgainBtn?.addEventListener('click', () => {
+     anime({
         targets: 'body',
         opacity: 0,
-        duration: 500,
+        duration: 400,
         easing: 'easeInQuad',
         complete: () => location.reload()
     });
 });
 
-// Eventos para cerrar modales (usando la función animada)
-notificationOkBtn.addEventListener('click', () => hideModal(notificationModal));
-eliminationOkBtn.addEventListener('click', () => hideModal(eliminationModal));
-document.querySelectorAll('.close-btn').forEach(btn => {
+// Cerrar Modales
+document.querySelectorAll('.modal .close-btn, .modal .modal-cancel-btn, #notification-ok').forEach(btn => {
     btn.addEventListener('click', (event) => {
-        hideModal(event.target.closest('.modal'));
+        const modal = event.target.closest('.modal');
+        if (modal) hideModal(modal);
     });
 });
 
-// --- Manejadores de Formularios ---
-createForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const hostName = document.getElementById('host-name').value;
-    if (hostName) {
-        playerName = hostName;
-        isHost = true;
-        // Feedback visual en botón
-        const submitBtn = createForm.querySelector('button[type="submit"]');
-        anime({ targets: submitBtn, scale: [1, 0.9, 1], duration: 200 });
 
-        socket.emit('createGame', { hostName }, (response) => {
-            if (response.success) {
-                gameId = response.gameId;
-                playerId = response.playerId;
-                gameCodeDisplay.textContent = response.gameCode;
-                showScreen(screens.hostWaiting); // Animará la entrada
-                // Animar el código apareciendo
-                anime({ targets: gameCodeDisplay, opacity: [0, 1], scale: [0.8, 1], duration: 500, delay: 400, easing: 'easeOutExpo' });
-            } else {
-                showNotification(response.message || 'Error al crear el juego');
-            }
-        });
-    }
+// --- Event Listeners de Socket.IO ---
+
+socket.on('connect', () => {
+    console.log('Conectado al servidor WebSocket.');
 });
 
-joinForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const gameCode = document.getElementById('game-code').value;
-    const name = document.getElementById('player-name').value;
-    if (gameCode && name) {
-        playerName = name;
-        const submitBtn = joinForm.querySelector('button[type="submit"]');
-        anime({ targets: submitBtn, scale: [1, 0.9, 1], duration: 200 });
-
-        socket.emit('joinGame', { gameCode, playerName: name }, (response) => {
-            if (response.success) {
-                gameId = response.gameId;
-                playerId = response.playerId;
-                showScreen(screens.playerWaiting); // Animará la entrada
-            } else {
-                showNotification(response.message || 'Error al unirse al juego');
-            }
-        });
-    }
+socket.on('disconnect', (reason) => {
+    console.warn('Desconectado del servidor:', reason);
+    showNotification(`Desconexión: ${reason}. Recarga para continuar.`);
 });
-
-// --- Eventos de Socket.IO ---
-socket.on('playerJoined', (data) => {
-    const { players, count } = data;
-
-    if (waitingPlaceholder) {
-        waitingPlaceholder.remove(); // Quitar el placeholder si existe
-    }
-
-    // Crear nuevos LIs y animarlos
-    const currentDisplayedPlayers = Array.from(playersList.querySelectorAll('li')).map(li => li.dataset.playerName);
-    const newPlayerItems = [];
-
-    players.forEach(player => {
-        // Solo añadir si no está ya en la lista visualmente
-        if (!currentDisplayedPlayers.includes(player.name)) {
-            const li = document.createElement('li');
-            li.textContent = player.name;
-            li.dataset.playerName = player.name; // Añadir data attribute para seguimiento
-            li.style.opacity = 0; // Inicial para animación
-            li.style.transform = 'translateX(-20px)';
-            playersList.appendChild(li);
-            newPlayerItems.push(li);
-        }
-    });
-
-    // Animar solo los nuevos jugadores
-    if (newPlayerItems.length > 0) {
-         anime({
-            targets: newPlayerItems,
-            opacity: [0, 1],
-            translateX: [-20, 0],
-            duration: 400,
-            delay: anime.stagger(60),
-            easing: 'easeOutQuad'
-        });
-    }
-
-    // Actualizar contadores
-    playerCount.textContent = count;
-    joinedCount.textContent = count;
-
-    // Habilitar botón de inicio si es host y se alcanza el mínimo
-    if (isHost) {
-        const neededPlayers = 10; // O el número que necesites
-        if (count >= neededPlayers) {
-            if (startGameBtn.disabled) { // Solo animar si estaba deshabilitado
-                 startGameBtn.disabled = false;
-                 anime({ targets: startGameBtn, scale: [0.9, 1], opacity: [0.5, 1], duration: 400, easing: 'easeOutBack' });
-            }
-            document.getElementById('waiting-message').innerHTML =
-                '<p><i class="fas fa-check-circle" style="color: var(--success-color);"></i> ¡Listos para empezar!</p>';
-        } else {
-            startGameBtn.disabled = true;
-             document.getElementById('waiting-message').innerHTML =
-                `<p>Esperando a que se unan ${neededPlayers - count} jugadores más...</p>`;
-             anime({ targets: startGameBtn, scale: [1, 0.9], opacity: [1, 0.6], duration: 300, easing: 'easeInQuad' });
-        }
-    }
-});
-
-
-socket.on('gameStarted', (data) => {
-    gameState = data.gameState;
-    materials = data.materials || []; // Asegurar que 'materials' global se actualice si se envía desde el servidor
-
-    // Llamar a showScreen para la transición animada
-    showScreen(screens.game);
-
-    // Dejar que updateGameUI se encargue de renderizar y animar elementos internos
-    // ya que showScreen lo llamará implícitamente a través de la lógica de estado
-    // o se llamará después si es necesario
-    updateGameUI(gameState); // Llamada inicial para asegurar la UI
-});
-
-
-socket.on('gameStateUpdated', (data) => {
-    gameState = data.gameState;
-    // Solo actualizar la UI, no cambiar de pantalla
-    updateGameUI(gameState);
-});
-
-
-socket.on('turnResult', (data) => {
-    gameState = data.gameState; // Actualizar estado global
-
-    // Configurar textos de resultado
-    let resultText = '';
-    if (data.balanced) {
-        resultTitle.textContent = '¡Balanza Equilibrada!';
-        resultText = 'La balanza se mantiene estable. ¡Buen trabajo!';
-        // Animar ícono de balanza equilibrada
-        anime({ targets: '#result-title i', rotate: [ -10, 10, -5, 5, 0 ], duration: 800, easing: 'easeInOutSine' });
-    } else {
-        resultTitle.textContent = '¡Balanza Desequilibrada!';
-        const eliminatedNames = data.eliminatedPlayers.map(p => p.name).join(', ');
-        resultText = `La balanza se ha inclinado. ${eliminatedNames ? `¡${eliminatedNames} ${data.eliminatedPlayers.length > 1 ? 'han sido eliminados' : 'ha sido eliminado'}!` : ''}`;
-        // Animar ícono de balanza desequilibrada
-         anime({ targets: '#result-title i', rotate: [0, data.leftWeight > data.rightWeight ? -15 : 15], duration: 600, easing: 'easeOutElastic(1, .8)' });
-    }
-
-    // Mostrar modal de eliminación si es el caso
-    if (data.eliminatedPlayers.some(p => p.id === playerId)) {
-        eliminated = true;
-        showEliminationModal();
-    }
-
-    resultMessage.textContent = resultText;
-
-    // Renderizar resumen del turno (elementos se animarán en showScreen)
-    turnSummaryList.innerHTML = ''; // Limpiar lista
-    const summaryItems = [
-        `Turno: ${gameState.currentTurn -1}`, // Turno que acaba de pasar
-        `Jugador: ${data.currentPlayerName}`,
-        `Acción: ${data.material ? 'Colocó Material' : 'Pasó Turno'}`,
-         ...(data.material ? [ // Añadir detalles del material si existe
-             `Material: ${data.material.type} (${data.material.weight}g)`,
-             `Lado: ${data.side === 'left' ? 'Izquierdo' : 'Derecho'}`
-         ] : []), // Array vacío si no hay material
-        `Peso Izquierdo: ${formatWeight(data.leftWeight)}g`,
-        `Peso Derecho: ${formatWeight(data.rightWeight)}g`,
-        `Diferencia: ${formatWeight(Math.abs(data.leftWeight - data.rightWeight))}g`,
-        `Estado: ${data.balanced ? 'Equilibrada ✅' : 'Desequilibrada ❌'}`
-    ];
-
-    summaryItems.forEach(itemText => {
-        const li = document.createElement('li');
-        li.textContent = itemText;
-        li.style.opacity = 0; // Inicial para animación
-        turnSummaryList.appendChild(li);
-    });
-
-    // Mostrar la pantalla de resultados del turno (con animación)
-    showScreen(screens.turnResult);
-});
-
-
-socket.on('gameOver', (data) => {
-    gameState = data.gameState;
-
-    // Limpiar y llenar listas (los elementos se animarán en showScreen)
-    winnersList.innerHTML = '';
-    data.winners.forEach(winner => {
-        const li = document.createElement('li');
-        li.innerHTML = `<i class="fas fa-crown" style="color: gold;"></i> ${winner.name} ${winner.isTeam ? '(Equipo)' : '(Individual)'}`;
-        li.style.opacity = 0;
-        winnersList.appendChild(li);
-    });
-
-    finalScaleInfo.innerHTML = `
-        <p>Peso Izquierdo: ${formatWeight(data.leftWeight)}g</p>
-        <p>Peso Derecho: ${formatWeight(data.rightWeight)}g</p>
-        <p>Diferencia Final: ${formatWeight(Math.abs(data.leftWeight - data.rightWeight))}g</p>
-        <p>Estado Final: ${isGameBalanced(data.leftWeight, data.rightWeight) ? 'Equilibrada' : 'Desequilibrada'}</p>
-    `;
-
-    eliminatedList.innerHTML = '';
-    data.eliminatedPlayers.forEach(player => {
-        const li = document.createElement('li');
-        li.innerHTML = `<i class="fas fa-user-slash" style="color: var(--grey-medium);"></i> ${player.name}`;
-         li.style.opacity = 0;
-        eliminatedList.appendChild(li);
-    });
-
-     // Mostrar pantalla final con animación
-    showScreen(screens.finalResults);
-});
-
 
 socket.on('error', (data) => {
-    showNotification(`Error: ${data.message}`);
-     // Animar el modal de error
-    anime({ targets: '#notification-modal .modal-content', translateX: [-5, 5, -5, 5, 0], duration: 400, easing: 'easeInOutSine' });
+    console.error('Error recibido del servidor:', data.message);
+    showNotification(`Error del servidor: ${data.message}`);
+    // Habilitar botones importantes si estaban deshabilitados
+     const createSubmitBtn = createForm?.querySelector('button[type="submit"]');
+     if(createSubmitBtn) { createSubmitBtn.disabled = false; createSubmitBtn.innerHTML = '<i class="fas fa-check"></i> Crear'; }
+     const joinSubmitBtn = joinForm?.querySelector('button[type="submit"]');
+     if(joinSubmitBtn) { joinSubmitBtn.disabled = false; joinSubmitBtn.innerHTML = '<i class="fas fa-door-open"></i> Unirse'; }
+     if(startGameBtn) { startGameBtn.disabled = (waitPlayerCount?.textContent < 2); startGameBtn.innerHTML = '<i class="fas fa-play"></i> Iniciar Juego'; } // Rehabilita si hay suficientes jugadores
+
 });
 
-// --- Inicializar la Aplicación ---
-// showScreen(screens.welcome); // Se muestra por defecto con la clase 'active' en HTML
-// Animar la pantalla inicial al cargar la página
+// Actualiza lista de jugadores en sala de espera
+socket.on('playerListUpdated', (data) => {
+    console.log("Recibido playerListUpdated:", data);
+    if (currentScreen === screens.waiting && waitPlayersList && waitPlayerCount && startGameBtn) {
+        waitPlayersList.innerHTML = '';
+        data.players?.forEach(p => {
+            const li = document.createElement('li');
+            li.textContent = `${p.turnOrder}. ${p.name} ${p.id === playerId ? '(Tú)' : ''}`;
+            li.classList.toggle('inactive', !p.isActive);
+            waitPlayersList.appendChild(li);
+        });
+        const currentCount = data.count ?? 0;
+        waitPlayerCount.textContent = currentCount;
+        if (isHost) {
+             startGameBtn.disabled = (currentCount < 2); // Habilitar si hay 2 o más
+        }
+    }
+});
+
+// El juego ha comenzado (CORREGIDO - Sin reseteo de botón)
+socket.on('gameStarted', ({ gameState }) => {
+    console.log("Recibido gameStarted:", gameState);
+    if (gameState) {
+        gameId = gameState.gameId;
+        showScreen(screens.game);
+        updateGameUI(gameState);
+        console.log("gameStarted handler: Screen switched and UI updated.");
+    } else {
+        showNotification("Error: No se recibió estado válido al iniciar el juego.");
+        // Habilitar botón de inicio si falla (por si el host necesita reintentar)
+        if(isHost && startGameBtn) {
+             startGameBtn.disabled = (waitPlayerCount?.textContent < 2); // Habilitar si hay suficientes
+             startGameBtn.innerHTML = '<i class="fas fa-play"></i> Iniciar Juego';
+        }
+    }
+});
+
+// Actualización del estado del juego durante la partida
+socket.on('gameStateUpdated', ({ gameState }) => {
+    console.log("Recibido gameStateUpdated:", gameState);
+     if (gameState) {
+        gameId = gameState.gameId;
+         const wasMyTurnBefore = gameState?.myTurn; // Captura estado anterior
+
+         updateGameUI(gameState); // Actualizar la UI con el nuevo estado
+
+         // Si estamos en la pantalla de juego
+         if (currentScreen === screens.game) {
+             // Reactivar controles si ahora es mi turno y antes no lo era
+             if (gameState.myTurn && !wasMyTurnBefore) {
+                 console.log("Ahora es mi turno, reactivando controles si aplica.");
+                  // Habilitar botones del inventario (renderPlayerInventory lo hace)
+                  // Habilitar botones de colocar/cancelar (updatePlacementControls lo hace si hay selección)
+                  updatePlacementControls();
+                 if(guessWeightsBtn) { // Habilitar/deshabilitar botón de adivinar
+                     guessWeightsBtn.disabled = !(gameState.isMainScaleBalanced && gameState.iCanGuess);
+                 }
+             }
+             // Asegurar que botones de acción estén correctamente habilitados/deshabilitados
+              if (gameState.myTurn) {
+                 if(cancelPlacementBtn) cancelPlacementBtn.disabled = false;
+                 // placeSelectedBtn se habilita/deshabilita en updatePlacementControls
+             } else {
+                  // Deshabilitar explícitamente si no es mi turno
+                  if(placeSelectedBtn) placeSelectedBtn.disabled = true;
+                  if(cancelPlacementBtn) cancelPlacementBtn.disabled = true;
+                  if(guessWeightsBtn) guessWeightsBtn.disabled = true;
+             }
+
+         } else if (gameState.status === 'playing' && currentScreen === screens.waiting) {
+             console.log("Juego empezó mientras esperaba, mostrando pantalla de juego.");
+             showScreen(screens.game);
+             // updateGameUI ya se llamó al inicio de la función
+         }
+     } else {
+        console.warn("gameStateUpdated recibido sin gameState válido.");
+     }
+});
+
+// Fin del juego
+socket.on('gameOver', ({ gameState, actualWeights }) => {
+    console.log("Recibido gameOver:", gameState, actualWeights);
+    if (gameState) {
+        updateGameUI(gameState); // Actualizar UI final antes de mostrar resultados
+
+        const titleEl = document.getElementById('final-result-title');
+        const messageEl = document.getElementById('final-result-message');
+        const winnersEl = document.getElementById('final-winners');
+        const weightsEl = document.getElementById('final-actual-weights');
+
+        if (titleEl) titleEl.innerHTML = `<i class="fas ${gameState.status === 'finished_success' ? 'fa-trophy' : 'fa-times-circle'}"></i> ${gameState.status === 'finished_success' ? '¡Éxito!' : 'Fracaso'}`;
+        if (messageEl) messageEl.textContent = gameState.status === 'finished_success'
+            ? `¡${gameState.successfulGuesser?.name || 'Alguien'} adivinó correctamente!`
+            : 'Nadie adivinó los pesos o la balanza no quedó equilibrada.';
+        if (winnersEl) winnersEl.textContent = gameState.status === 'finished_success'
+            ? `Ganador: ${gameState.successfulGuesser?.name || 'Desconocido'}`
+            : 'Ganadores: Ninguno';
+
+        if (weightsEl && actualWeights) {
+            weightsEl.innerHTML = '';
+            MINERAL_TYPES.forEach(type => {
+                 const li = document.createElement('li');
+                 li.innerHTML = `<strong>${type}:</strong> ${actualWeights[type] ?? '?'}g`;
+                 weightsEl.appendChild(li);
+            });
+        } else if (weightsEl) {
+             weightsEl.innerHTML = '<li>Error al obtener pesos finales.</li>';
+        }
+
+        showScreen(screens.finalResults);
+    } else {
+         console.error("gameOver recibido sin gameState válido.");
+         showNotification("Error al recibir los resultados finales del juego.");
+    }
+});
+
+// Notificación de jugador desconectado
+socket.on('playerDisconnected', ({ playerName }) => {
+    console.log(`${playerName} se ha desconectado.`);
+    // Opcional: mostrar notificación no modal
+});
+
+
+// --- Inicialización al Cargar la Página ---
 window.addEventListener('load', () => {
-    anime({
-        targets: '#welcome-screen',
-        opacity: [0, 1],
-        translateY: [20, 0],
-        scale: [0.98, 1],
-        duration: 500,
-        easing: 'easeOutQuad'
-    });
-    anime({
-        targets: '#welcome-screen .animatable-button',
-        opacity: [0, 1],
-        translateY: [15, 0],
-        delay: anime.stagger(100, {start: 200})
-    });
+    Object.values(screens).forEach(s => { s.classList.remove('active'); s.style.display = 'none';});
+    if (screens.welcome) {
+        screens.welcome.classList.add('active');
+        screens.welcome.style.display = 'flex';
+        screens.welcome.style.opacity = 0;
+        currentScreen = screens.welcome;
+        anime({
+            targets: screens.welcome,
+            opacity: [0, 1],
+            duration: 500,
+            easing: 'easeOutQuad'
+        });
+         anime({
+            targets: '#welcome-screen .animatable-button',
+            opacity: [0, 1],
+            translateY: [10, 0],
+            delay: anime.stagger(100, {start: 100})
+        });
+    } else {
+        console.error("Error: No se encontró la pantalla de bienvenida (#welcome-screen).");
+    }
 });

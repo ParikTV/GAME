@@ -3,40 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juego de Escala - Plan del Diablo</title>
+    <title>Juego de Escala - DVP</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
+    <link rel="stylesheet" href="styles.css"> </head>
 <body>
     <div class="container">
+
         <div id="welcome-screen" class="screen active">
             <h1 class="app-title">Juego de Escala</h1>
             <p class="app-subtitle">Basado en "Plan del Diablo"</p>
-
             <div class="options-container">
                 <button id="create-btn" class="btn primary-btn animatable-button"><i class="fas fa-plus-circle"></i> Crear Juego</button>
                 <button id="join-btn" class="btn secondary-btn animatable-button"><i class="fas fa-sign-in-alt"></i> Unirse a Juego</button>
             </div>
-             <footer class="app-footer">
-                Hecho con ❤️ y ⚖️
-             </footer>
+            <footer class="app-footer">Adaptación del Juego de Escala</footer>
         </div>
 
         <div id="create-screen" class="screen">
             <h2><i class="fas fa-cogs"></i> Crear Nuevo Juego</h2>
             <form id="create-form">
                 <div class="form-group">
-                    <label for="host-name"><i class="fas fa-user"></i> Tu nombre:</label>
-                    <input type="text" id="host-name" required placeholder="Introduce tu nombre de anfitrión">
+                    <label for="host-name"><i class="fas fa-user"></i> Tu nombre (Host):</label>
+                    <input type="text" id="host-name" required placeholder="Introduce tu nombre">
                 </div>
-
                 <div class="form-actions">
                     <button type="button" id="back-from-create" class="btn secondary-btn"><i class="fas fa-arrow-left"></i> Volver</button>
-                    <button type="submit" class="btn primary-btn"><i class="fas fa-check"></i> Crear</button>
-                </div>
+                    <button type="submit" class="btn primary-btn" id="create-form-submit"><i class="fas fa-check"></i> Crear</button> </div>
             </form>
         </div>
 
@@ -44,197 +39,202 @@
             <h2><i class="fas fa-plug"></i> Unirse a un Juego</h2>
             <form id="join-form">
                 <div class="form-group">
-                    <label for="game-code"><i class="fas fa-key"></i> Código del juego:</label>
-                    <input type="text" id="game-code" required maxlength="6" placeholder="Código de 6 dígitos">
+                    <label for="join-game-code"><i class="fas fa-key"></i> Código del juego:</label>
+                    <input type="text" id="join-game-code" required maxlength="6" pattern="[0-9]{6}" placeholder="Código de 6 dígitos">
                 </div>
                 <div class="form-group">
-                    <label for="player-name"><i class="fas fa-user-tag"></i> Tu nombre:</label>
-                    <input type="text" id="player-name" required placeholder="Introduce tu nombre de jugador">
+                    <label for="join-player-name"><i class="fas fa-user-tag"></i> Tu nombre:</label>
+                    <input type="text" id="join-player-name" required placeholder="Introduce tu nombre">
                 </div>
-
                 <div class="form-actions">
                     <button type="button" id="back-from-join" class="btn secondary-btn"><i class="fas fa-arrow-left"></i> Volver</button>
-                    <button type="submit" class="btn primary-btn"><i class="fas fa-door-open"></i> Unirse</button>
-                </div>
+                    <button type="submit" class="btn primary-btn" id="join-form-submit"><i class="fas fa-door-open"></i> Unirse</button> </div>
             </form>
         </div>
 
-        <div id="host-waiting-screen" class="screen">
-            <h2><i class="fas fa-hourglass-half"></i> Sala de Espera (Host)</h2>
+        <div id="waiting-screen" class="screen">
+            <h2><i class="fas fa-hourglass-half"></i> Sala de Espera</h2>
             <div class="game-code-display">
                 <h3>Código para unirse:</h3>
                 <div class="code-box-wrapper">
-                    <div id="game-code-display" class="code-box">------</div>
+                    <div id="wait-game-code-display" class="code-box">------</div>
                     <button id="copy-code-btn" class="btn icon-btn" title="Copiar código"><i class="fas fa-copy"></i></button>
                 </div>
             </div>
-
             <div class="players-container">
-                <h3><i class="fas fa-users"></i> Jugadores (<span id="player-count">0</span>/10):</h3>
-                <ul id="players-list">
+                <h3><i class="fas fa-users"></i> Jugadores (<span id="wait-player-count">0</span>):</h3>
+                <ul id="wait-players-list">
                     <li class="waiting-placeholder">Esperando jugadores...</li>
                 </ul>
             </div>
-
-            <div class="waiting-message" id="waiting-message">
-                <p>Esperando a que se unan 10 jugadores para empezar...</p>
-                 <div class="loader hidden"></div>
-            </div>
-
-            <button id="start-game-btn" class="btn primary-btn large-btn" disabled><i class="fas fa-play"></i> Iniciar Juego</button>
-        </div>
-
-        <div id="player-waiting-screen" class="screen">
-             <h2><i class="fas fa-clock"></i> Esperando...</h2>
-             <div class="waiting-message">
-                <p>¡Te has unido! Esperando a que se unan todos (<span id="joined-count">0</span>/10).</p>
-                <p>El anfitrión iniciará la partida pronto.</p>
-            </div>
-            <div class="loader"></div>
-        </div>
+            <p id="host-instructions" class="hidden">Esperando jugadores... Presiona Iniciar cuando estén listos (mínimo 2).</p> <button id="start-game-btn" class="btn primary-btn large-btn hidden"><i class="fas fa-play"></i> Iniciar Juego</button> <p id="player-wait-message" class="hidden">Esperando a que el host inicie el juego...</p> </div>
 
         <div id="game-screen" class="screen">
-            <div class="game-header">
-                 <div class="game-info">
-                    <div class="turn-info card">
-                        <h3><i class="fas fa-redo"></i> Turno: <span id="current-turn" class="highlight">1</span></h3>
-                        <h3><i class="fas fa-user-clock"></i> Jugador Actual: <span id="current-player" class="highlight">-</span></h3>
-                    </div>
-                    <div class="timer-container card">
-                        <i class="fas fa-stopwatch"></i>
-                        <div id="timer" class="timer highlight">30</div>
-                        <span>s</span>
-                    </div>
+            <header class="game-header">
+                <div class="turn-timer-info card">
+                    <h3>Turno de: <span id="current-player-indicator" class="highlight">Jugador X (T#)</span></h3>
+                    <div class="timer-container">
+                        <i class="fas fa-stopwatch"></i> <span id="game-timer">5:00</span> </div>
                 </div>
+                <div class="known-info card">
+                    <h4><i class="fas fa-info-circle"></i> Pista Inicial:</h4>
+                    <p id="known-info-text">-</p>
+                </div>
+                 <div class="last-guess-info card hidden"> <h4><i class="fas fa-history"></i> Última Adivinanza:</h4>
+                    <p id="last-guess-text">-</p>
+                </div>
+            </header>
 
-                <div class="teams-info card">
-                    <h3><i class="fas fa-users-cog"></i> Equipos:</h3>
-                    <div id="teams-container" class="teams-container">
+            <main class="game-main-content">
+                <section class="scales-area">
+                    <div class="scale-instance main-scale-instance">
+                        <div class="scale-header">
+                            <h4>Balanza Principal</h4>
+                            <span id="main-balance-status" class="balance-status-indicator">(Desconocido)</span>
                         </div>
-                </div>
-            </div>
-
-            <div class="scale-container">
-                <div class="scale">
-                    <div class="scale-arm" id="scale-arm">
-                        <div class="scale-platform left" id="left-platform">
-                            <div class="material-stack" id="left-materials"></div>
-                            <div class="weight-display">
-                                <span id="left-weight" class="weight-value">0.0</span>g
+                        <div class="scale-container">
+                            <div class="scale">
+                                 <div class="scale-arm" id="main-scale-arm">
+                                    <div class="scale-platform left" id="main-left-platform-visual"> <div class="material-stack" id="main-left-materials"></div>
+                                        <div class="weight-display"><span id="main-left-weight">0</span> g</div> </div>
+                                    <div class="scale-center"><div class="scale-pivot"></div></div>
+                                    <div class="scale-platform right" id="main-right-platform-visual"> <div class="material-stack" id="main-right-materials"></div>
+                                        <div class="weight-display"><span id="main-right-weight">0</span> g</div> </div>
+                                </div>
+                                <div class="scale-base"></div>
                             </div>
                         </div>
-                        <div class="scale-center">
-                            <div class="scale-pivot"></div>
-                        </div>
-                        <div class="scale-platform right" id="right-platform">
-                            <div class="material-stack" id="right-materials"></div>
-                             <div class="weight-display">
-                                <span id="right-weight" class="weight-value">0.0</span>g
+                         <button id="guess-weights-btn" class="btn secondary-btn guess-btn" disabled>
+                            <i class="fas fa-question-circle"></i> Adivinar Pesos
+                        </button>
+                    </div>
+
+                 <div class="scale-instance secondary-scale-instance">
+                         <div class="scale-header">
+                            <h4>Balanza Secundaria</h4>
+                            </div>
+                        <div class="scale-container">
+                             <div class="scale">
+                                <div class="scale-arm" id="secondary-scale-arm">
+                                     <div class="scale-platform left" id="secondary-left-platform-visual"> <div class="material-stack" id="secondary-left-materials"></div>
+                                        <div class="weight-display"><span id="secondary-left-weight">0</span> g</div> </div>
+                                    <div class="scale-center"><div class="scale-pivot"></div></div>
+                                    <div class="scale-platform right" id="secondary-right-platform-visual"> <div class="material-stack" id="secondary-right-materials"></div>
+                                        <div class="weight-display"><span id="secondary-right-weight">0</span> g</div> </div>
+                                </div>
+                                <div class="scale-base"></div>
                             </div>
                         </div>
+                         </div>
+                </section>
+
+                <section id="player-area" class="player-area card">
+                    <div id="turn-status-indicator">
+                        <div id="my-turn-indicator" class="turn-notification hidden"><h4><i class="fas fa-star"></i> ¡Es tu turno!</h4></div>
+                        <div id="waiting-turn-indicator" class="waiting-turn hidden"><p>Esperando turno de otros...</p></div>
                     </div>
-                    <div class="scale-base"></div>
-                </div>
-            </div>
 
-            <div id="player-controls" class="player-controls">
-                <div id="is-your-turn" class="turn-notification hidden card">
-                    <h3><i class="fas fa-star"></i> ¡Es tu turno!</h3>
-                    <p>Selecciona un material y un lado de la balanza.</p>
-                </div>
+                    <h4>Mis Minerales (<span id="my-mineral-count">10</span>):</h4>
+                    <div id="my-inventory-container" class="materials-container inventory-style">
+                        </div>
 
-                <div id="materials-wrapper" class="hidden">
-                    <h4 class="materials-title"><i class="fas fa-cubes"></i> Materiales Disponibles:</h4>
-                    <div id="materials-container" class="materials-container">
+                    <div id="placement-controls-section" class="placement-controls-section hidden">
+                        <h4>Colocar <span id="selected-count">0</span> Mineral(es) Seleccionado(s):</h4>
+                         <div class="placement-form-group">
+                            <label for="target-scale-select">En Balanza:</label>
+                            <select id="target-scale-select">
+                                <option value="main">Principal</option>
+                                <option value="secondary">Secundaria</option>
+                            </select>
                         </div>
-                     <div id="side-selection" class="side-selection hidden card">
-                        <h4>¿En qué lado colocar <span id="selected-material-name">el material</span>?</h4>
-                        <div class="side-buttons">
-                            <button id="select-left" class="btn side-btn left-btn"><i class="fas fa-arrow-left"></i> Izquierdo</button>
-                            <button id="select-right" class="btn side-btn right-btn"><i class="fas fa-arrow-right"></i> Derecho</button>
-                            <button id="cancel-selection" class="btn secondary-btn small-btn"><i class="fas fa-times"></i> Cancelar</button>
-                        </div>
+                        <div class="placement-form-group">
+                            <label for="target-side-select">En Lado:</label>
+                            <select id="target-side-select">
+                                <option value="left">Izquierdo</option>
+                                <option value="right">Derecho</option>
+                            </select>
+                         </div>
+                         <div class="placement-actions">
+                            <button id="place-selected-btn" class="btn primary-btn" disabled><i class="fas fa-check"></i> Colocar</button>
+                            <button id="cancel-placement-btn" class="btn secondary-btn small-btn"><i class="fas fa-times"></i> Limpiar Selección</button>
+                         </div>
+                         <p id="placement-error" class="error-text hidden">Debes seleccionar y colocar al menos 2 minerales.</p>
                     </div>
-                    <button id="skip-turn-btn" class="btn secondary-btn hidden"><i class="fas fa-forward"></i> Pasar Turno</button>
-                </div>
+                    <p id="cannot-place-message" class="info-text hidden">No tienes suficientes minerales para colocar.</p>
 
+                </section>
+            </main>
 
-                <div id="waiting-turn" class="waiting-turn card hidden">
-                    <p><i class="fas fa-pause-circle"></i> Esperando a <strong id="waiting-player">-</strong>...</p>
-                    <div class="mini-loader"></div>
-                </div>
-
-            </div>
-        </div>
-
-        <div id="turn-result-screen" class="screen">
-             <div id="balance-result" class="balance-result card">
-                <h2 id="result-title"><i class="fas fa-balance-scale"></i> Resultado del Turno</h2>
-                <div id="result-message" class="result-message"></div>
-            </div>
-
-            <div class="turn-summary card">
-                <h3><i class="fas fa-clipboard-list"></i> Resumen:</h3>
-                <ul id="turn-summary-list">
+            <aside class="players-sidebar card">
+                <h4>Jugadores</h4>
+                <ul id="game-players-list">
                     </ul>
-            </div>
-
-            <div id="result-controls">
-                <button id="next-turn-btn" class="btn primary-btn large-btn"><i class="fas fa-step-forward"></i> Continuar</button>
-            </div>
+            </aside>
         </div>
 
         <div id="final-results-screen" class="screen">
-            <h2><i class="fas fa-trophy"></i> ¡Fin del Juego!</h2>
-
-            <div class="winners-container card">
-                <h3><i class="fas fa-crown"></i> Ganadores:</h3>
-                <ul id="winners-list">
-                     </ul>
+            <h2 id="final-result-title"><i class="fas fa-flag-checkered"></i> Fin del Juego</h2>
+            <div class="card result-summary">
+                <h3 id="final-result-message">Resultado: Desconocido</h3>
+                <p id="final-winners">Ganadores: -</p>
             </div>
+            <div class="card final-weights-reveal">
+                <h4>Pesos Reales de los Minerales:</h4>
+                <ul id="final-actual-weights"></ul>
+            </div>
+             <div class="final-actions">
+                <button id="play-again-btn" class="btn primary-btn large-btn"><i class="fas fa-redo-alt"></i> Jugar Otra Vez (Recargar)</button>
+            </div>
+        </div>
 
-            <div class="final-scale-status card">
-                <h3><i class="fas fa-balance-scale-right"></i> Balanza Final:</h3>
-                <div id="final-scale-info">
+        <div id="guess-modal" class="modal">
+             <div class="modal-content">
+                 <span class="close-btn">&times;</span> <h4><i class="fas fa-question-circle"></i> Adivinar Pesos (1-20g)</h4>
+                 <p>Introduce el peso que crees que tiene cada mineral. ¡Debe ser exacto!</p>
+                 <form id="guess-form">
+                      <div class="guess-grid">
+                         <div class="form-group guess-group">
+                             <label for="guess-rojo">Rojo:</label>
+                             <input type="number" id="guess-rojo" name="Rojo" required min="1" max="20" step="1">
+                         </div>
+                         <div class="form-group guess-group">
+                             <label for="guess-amarillo">Amarillo:</label>
+                             <input type="number" id="guess-amarillo" name="Amarillo" required min="1" max="20" step="1">
+                         </div>
+                         <div class="form-group guess-group">
+                             <label for="guess-verde">Verde:</label>
+                             <input type="number" id="guess-verde" name="Verde" required min="1" max="20" step="1">
+                         </div>
+                         <div class="form-group guess-group">
+                             <label for="guess-azul">Azul:</label>
+                             <input type="number" id="guess-azul" name="Azul" required min="1" max="20" step="1">
+                         </div>
+                          <div class="form-group guess-group">
+                             <label for="guess-purpura">Púrpura:</label>
+                             <input type="number" id="guess-purpura" name="Purpura" required min="1" max="20" step="1">
+                         </div>
                     </div>
-            </div>
+                    <div class="modal-actions">
+                        <button type="submit" class="btn primary-btn">Enviar Adivinanza</button>
+                        <button type="button" class="btn secondary-btn modal-cancel-btn">Cancelar</button> </div>
+                </form>
+             </div>
+         </div>
 
-            <div class="eliminated-players card">
-                <h3><i class="fas fa-user-slash"></i> Jugadores Eliminados:</h3>
-                 <ul id="eliminated-list">
-                     </ul>
-            </div>
+         <div id="notification-modal" class="modal">
+             <div class="modal-content">
+                 <span class="close-btn">&times;</span> <h4><i class="fas fa-info-circle"></i> Notificación</h4>
+                 <p id="notification-message"></p>
+                 <div class="modal-actions">
+                      <button id="notification-ok" class="btn primary-btn">Aceptar</button>
+                  </div>
+             </div>
+         </div>
 
-            <button id="play-again-btn" class="btn primary-btn large-btn"><i class="fas fa-redo-alt"></i> Jugar Otra Vez</button>
-        </div>
-
-        <div id="notification-modal" class="modal">
-            <div class="modal-content">
-                <span class="close-btn">&times;</span>
-                <h4><i class="fas fa-info-circle"></i> Notificación</h4>
-                <p id="notification-message"></p>
-                <button id="notification-ok" class="btn primary-btn">Aceptar</button>
-            </div>
-        </div>
-
-        <div id="elimination-modal" class="modal">
-            <div class="modal-content elimination-content">
-                <span class="close-btn">&times;</span>
-                <h2><i class="fas fa-skull-crossbones"></i> ¡ELIMINADO!</h2>
-                 <p>La balanza se desequilibró.</p>
-                <p>Has sido eliminado del juego.</p>
-                <div class="elimination-animation">
-                    <i class="fas fa-balance-scale fa-shake"></i>
-                </div>
-                <button id="elimination-ok" class="btn primary-btn">Entendido</button>
-            </div>
-        </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-
     <script src="/socket.io/socket.io.js"></script>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
