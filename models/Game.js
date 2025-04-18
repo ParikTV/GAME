@@ -1,13 +1,24 @@
+// models/Game.js
 const mongoose = require('mongoose');
 const MineralSchema = require('./MineralSchema'); // Importar si está en archivo separado
 
 // Schema para el estado de una balanza (principal o secundaria)
 const ScaleStateSchema = new mongoose.Schema({
-    leftMaterials: [MineralSchema],  // Minerales colocados en este lado
-    rightMaterials: [MineralSchema],
+    leftMaterials: [MineralSchema],  // Minerales colocados en este lado (con peso, solo servidor)
+    rightMaterials: [MineralSchema], // Minerales colocados en este lado (con peso, solo servidor)
     leftWeight: { type: Number, default: 0 },
     rightWeight: { type: Number, default: 0 }
 }, { _id: false });
+
+// Schema para el resultado de la última adivinanza
+const LastGuessResultSchema = new mongoose.Schema({
+    playerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Player' },
+    correct: { type: Boolean }, // ¿Fue la adivinanza global correcta?
+    timestamp: { type: Date },
+    rewardGranted: { type: Number, default: 0 }, // Hacker Bytes extra otorgados por aciertos parciales
+    correctCount: { type: Number, default: 0 } // Número de pesos individuales correctos en ese intento
+}, { _id: false });
+
 
 const GameSchema = new mongoose.Schema({
     gameCode: { // Código de 6 dígitos para unirse
@@ -51,7 +62,7 @@ const GameSchema = new mongoose.Schema({
     // Control de turnos
     currentTurnOrder: { // El número de orden (1, 2, ...) del jugador actual
         type: Number,
-        default: 1
+        default: 0 // Inicia en 0 hasta que comience el juego
     },
     currentPlayerId: { // El _id del jugador actual
         type: mongoose.Schema.Types.ObjectId,
@@ -64,12 +75,9 @@ const GameSchema = new mongoose.Schema({
         ref: 'Player',
         default: null
     },
-    // Almacenar el resultado del último intento de adivinanza (opcional)
-    lastGuessResult: {
-        playerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Player' },
-        correct: { type: Boolean },
-        timestamp: { type: Date }
-    },
+    // Almacenar el resultado del último intento de adivinanza
+    lastGuessResult: { type: LastGuessResultSchema, default: null }, // <--- Usando el nuevo schema
+
     // Historial de rondas (opcional, similar al original si quieres guardar cada acción)
     // roundHistory: [{...}]
 
@@ -80,9 +88,12 @@ const GameSchema = new mongoose.Schema({
 // Método helper para verificar si la balanza principal está equilibrada
 GameSchema.methods.isMainScaleBalanced = function() {
     if (!this.mainScale) return true; // Default es {} ahora
-    const difference = Math.abs((this.mainScale.leftWeight || 0) - (this.mainScale.rightWeight || 0));
-    // Regla: Asumamos <= 1g ya que son enteros.
-    const threshold = 1;
+    // Los pesos pueden ser 0, así que hay que manejar eso.
+    const leftW = this.mainScale.leftWeight || 0;
+    const rightW = this.mainScale.rightWeight || 0;
+    const difference = Math.abs(leftW - rightW);
+    // Regla: Umbral de equilibrio. Usar 0 para equilibrio exacto.
+    const threshold = 0; // Cambiado a 0 para requerir equilibrio exacto para adivinar
     return difference <= threshold;
 };
 

@@ -3,19 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juego de Escala - DVP</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <title>Juego de Escala - HackerBytes</title> <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"> <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
 
         <div id="welcome-screen" class="screen">
             <h1 class="app-title animatable-on-load">Juego de Escala</h1>
-            <p class="app-subtitle animatable-on-load">Basado en "Plan del Diablo"</p>
-            <div class="options-container">
+            <p class="app-subtitle animatable-on-load">Edición Hacker Bytes</p> <div class="options-container">
                 <button id="create-btn" class="btn primary-btn large-btn animatable-button"><i class="fas fa-plus-circle"></i> Crear Juego</button>
                 <button id="join-btn" class="btn secondary-btn large-btn animatable-button"><i class="fas fa-sign-in-alt"></i> Unirse a Juego</button>
             </div>
@@ -63,7 +62,8 @@
                     <button id="copy-code-btn" class="btn icon-btn" title="Copiar código" aria-label="Copiar código del juego"><i class="fas fa-copy"></i></button>
                 </div>
             </div>
-            <div class="players-container animatable-on-load card"> <h3><i class="fas fa-users"></i> Jugadores (<span id="wait-player-count">0</span>):</h3>
+            <div class="players-container animatable-on-load card">
+                <h3><i class="fas fa-users"></i> Jugadores (<span id="wait-player-count">0</span>):</h3>
                 <ul id="wait-players-list" aria-live="polite">
                     <li class="waiting-placeholder">Esperando jugadores...</li>
                 </ul>
@@ -85,7 +85,8 @@
                     <h4><i class="fas fa-info-circle"></i> Pista Inicial:</h4>
                     <p id="known-info-text">-</p>
                 </div>
-                 <div class="last-guess-info card hidden animatable-on-load"> <h4><i class="fas fa-history"></i> Última Adivinanza:</h4>
+                 <div class="last-guess-info card hidden animatable-on-load">
+                    <h4><i class="fas fa-history"></i> Última Adivinanza:</h4>
                     <p id="last-guess-text">-</p>
                 </div>
             </header>
@@ -107,15 +108,14 @@
                                     <div class="scale-center"><div class="scale-pivot"></div></div>
                                     <div class="scale-platform right" id="main-right-platform-visual">
                                         <div class="material-stack" id="main-right-materials"></div>
-                                        <div class="weight-display"><span id="main-right-weight">0</span> g</div>
+                                         <div class="weight-display"><span id="main-right-weight">0</span> g</div>
                                     </div>
                                 </div>
                                 <div class="scale-base"></div>
                             </div>
                         </div>
                          <button id="guess-weights-btn" class="btn secondary-btn guess-btn" disabled>
-                            <i class="fas fa-question-circle"></i> Adivinar Pesos
-                        </button>
+                            <i class="fas fa-question-circle"></i> Adivinar Pesos (2/2) </button>
                     </div>
 
                     <div class="scale-instance secondary-scale-instance">
@@ -127,7 +127,7 @@
                                 <div class="scale-arm" id="secondary-scale-arm">
                                      <div class="scale-platform left" id="secondary-left-platform-visual">
                                          <div class="material-stack" id="secondary-left-materials"></div>
-                                        <div class="weight-display"><span id="secondary-left-weight">0</span> g</div>
+                                         <div class="weight-display"><span id="secondary-left-weight">0</span> g</div>
                                      </div>
                                     <div class="scale-center"><div class="scale-pivot"></div></div>
                                     <div class="scale-platform right" id="secondary-right-platform-visual">
@@ -147,11 +147,16 @@
                         <div id="waiting-turn-indicator" class="waiting-turn hidden"><p>Esperando turno de otros...</p></div>
                     </div>
 
+                    <div class="player-currency card">
+                        <h4><i class="fas fa-database"></i> Mis Hacker Bytes: <span id="my-hacker-bytes-display">0</span></h4>
+                    </div>
+
                     <h4>Mis Minerales (<span id="my-mineral-count">10</span>):</h4>
                     <div id="my-inventory-container" class="inventory-style">
                         </div>
 
-                    <div id="placement-controls-section" class="placement-controls-section hidden"> <h4>Colocar <span id="selected-count">0</span> Mineral(es):</h4>
+                    <div id="placement-controls-section" class="placement-controls-section hidden">
+                         <h4>Colocar <span id="selected-count">0</span> Mineral(es):</h4>
                          <div class="placement-form-group">
                             <label for="target-scale-select">En Balanza:</label>
                             <select id="target-scale-select" aria-label="Seleccionar balanza objetivo">
@@ -189,10 +194,11 @@
             <div class="card result-summary animatable-on-load">
                 <h3 id="final-result-message">Resultado: Desconocido</h3>
                 <p id="final-winners">Ganadores: -</p>
-            </div>
+                </div>
             <div class="card final-weights-reveal animatable-on-load">
                 <h4>Pesos Reales de los Minerales:</h4>
-                <ul id="final-actual-weights"></ul>
+                <ul id="final-actual-weights">
+                    </ul>
             </div>
              <div class="final-actions animatable-on-load">
                 <button id="play-again-btn" class="btn primary-btn large-btn"><i class="fas fa-redo-alt"></i> Volver al Inicio</button>
@@ -203,28 +209,28 @@
              <div class="modal-content">
                  <span class="close-btn" title="Cerrar" aria-label="Cerrar">&times;</span>
                  <h4 id="guess-modal-title"><i class="fas fa-question-circle"></i> Adivinar Pesos (1-20g)</h4>
-                 <p>Introduce el peso que crees que tiene cada mineral. ¡Debe ser exacto! (Cuesta 1 pieza)</p>
+                 <p>Introduce el peso que crees que tiene cada mineral. ¡Debe ser exacto! (Cuesta <span id="guess-cost-display">100</span> Hacker Bytes)</p>
                  <form id="guess-form">
                       <div class="guess-grid">
                          <div class="form-group guess-group">
                              <label for="guess-rojo" class="rojo">Rojo:</label>
-                             <input type="number" id="guess-rojo" name="Rojo" required min="1" max="20" step="1" inputmode="numeric" aria-required="true">
+                             <input type="number" id="guess-rojo" name="Rojo" required min="1" max="20" step="1" inputmode="numeric" aria-required="true" placeholder="1-20">
                          </div>
                          <div class="form-group guess-group">
                              <label for="guess-amarillo" class="amarillo">Amarillo:</label>
-                             <input type="number" id="guess-amarillo" name="Amarillo" required min="1" max="20" step="1" inputmode="numeric" aria-required="true">
+                             <input type="number" id="guess-amarillo" name="Amarillo" required min="1" max="20" step="1" inputmode="numeric" aria-required="true" placeholder="1-20">
                          </div>
                          <div class="form-group guess-group">
                              <label for="guess-verde" class="verde">Verde:</label>
-                             <input type="number" id="guess-verde" name="Verde" required min="1" max="20" step="1" inputmode="numeric" aria-required="true">
+                             <input type="number" id="guess-verde" name="Verde" required min="1" max="20" step="1" inputmode="numeric" aria-required="true" placeholder="1-20">
                          </div>
                          <div class="form-group guess-group">
                              <label for="guess-azul" class="azul">Azul:</label>
-                             <input type="number" id="guess-azul" name="Azul" required min="1" max="20" step="1" inputmode="numeric" aria-required="true">
+                             <input type="number" id="guess-azul" name="Azul" required min="1" max="20" step="1" inputmode="numeric" aria-required="true" placeholder="1-20">
                          </div>
                          <div class="form-group guess-group">
                              <label for="guess-purpura" class="purpura">Púrpura:</label>
-                             <input type="number" id="guess-purpura" name="Purpura" required min="1" max="20" step="1" inputmode="numeric" aria-required="true">
+                             <input type="number" id="guess-purpura" name="Purpura" required min="1" max="20" step="1" inputmode="numeric" aria-required="true" placeholder="1-20">
                          </div>
                     </div>
                     <div class="modal-actions">
@@ -246,7 +252,26 @@
              </div>
          </div>
 
-    </div> <script src="/socket.io/socket.io.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script> <script src="app.js"></script>
+         <div id="jackpot-animation" class="modal" style="display: none; background-color: rgba(0,0,0,0.85); z-index: 1010; align-items: center; justify-content: center;">
+             <div class="jackpot-content">
+                 <div class="jackpot-title">¡PREMIO MAYOR!</div>
+                 <div class="jackpot-amount">
+                     <span class="currency-icon">HB</span>
+                     10,000,000 </div>
+                 <div class="jackpot-subtitle">Hacker Bytes</div>
+                 </div>
+         </div>
+
+         <div id="hackerbyte-logo-container" title="Hacker Bytes">
+            <div class="hackerbyte-logo">
+                <div class="h-char">H</div>
+                <div class="b-char">B</div>
+            </div>
+        </div>
+
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
