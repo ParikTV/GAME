@@ -3,8 +3,8 @@ const MineralSchema = require('./MineralSchema'); // Importar si está en archiv
 
 // Schema para el estado de una balanza (principal o secundaria)
 const ScaleStateSchema = new mongoose.Schema({
-    leftMaterials: [MineralSchema],  // Minerales colocados en este lado
-    rightMaterials: [MineralSchema],
+    leftMaterials: [MineralSchema],  // Minerales colocados en este lado (CON peso en backend)
+    rightMaterials: [MineralSchema], // Minerales colocados en este lado (CON peso en backend)
     leftWeight: { type: Number, default: 0 },
     rightWeight: { type: Number, default: 0 }
 }, { _id: false });
@@ -27,7 +27,18 @@ const GameSchema = new mongoose.Schema({
     }],
     status: { // Estado actual del juego
         type: String,
-        enum: ['waiting', 'playing', 'finished_success', 'finished_failure'],
+        enum: [
+            'waiting',                 // Esperando jugadores
+            'playing',                 // Fase 1: Colocar minerales
+            'voting',                  // Fase de votación para continuar
+            'guessing_phase',          // Fase 2: Adivinanza individual
+            'finished_balance_win',    // Ganó por balancear y votó NO/empate
+            'finished_phase2_win',     // Ganó Fase 2 (>= 3 aciertos)
+            'finished_phase2_loss',    // Perdió Fase 2 (< 3 aciertos)
+            'finished_disconnect_vote',// Alguien desconectó en votación
+            'finished_disconnect_game',// Juego terminó por desconexiones generales
+            'finished_failure'         // Estado genérico si nadie balanceó/ganó (puede necesitar refinar)
+        ],
         default: 'waiting'
     },
     // Los pesos SECRETOS de cada tipo de mineral para esta partida
@@ -58,32 +69,50 @@ const GameSchema = new mongoose.Schema({
         ref: 'Player',
         default: null
     },
-    // Información sobre adivinanzas
-    successfulGuesser: { // Quién adivinó correctamente (si alguien lo hizo)
+
+    // --- NUEVOS CAMPOS ---
+    currentPrizePot: { // Premio inicial/acumulado
+        type: Number,
+        default: 10000000 // O inicializar en server.js al empezar votación
+    },
+    balancerPlayerId: { // Quién equilibró la balanza en Fase 1
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Player',
         default: null
     },
-    // Almacenar el resultado del último intento de adivinanza (opcional)
-    lastGuessResult: {
-        playerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Player' },
-        correct: { type: Boolean },
-        timestamp: { type: Date }
+    votingState: { // Estado de la votación
+        votes: {
+            type: Map,
+            of: String // 'yes'/'no' o null
+        },
+        requiredVotes: { type: Number, default: 0 },
+        receivedVotes: { type: Number, default: 0 }
     },
-    // Historial de rondas (opcional, similar al original si quieres guardar cada acción)
-    // roundHistory: [{...}]
+    phase2RoundsPlayed: { type: Number, default: 0 }, // Contador de rondas en Fase 2
+    phase2CorrectGuessesTotal: { type: Number, default: 0 }, // Contador global de aciertos únicos en Fase 2
+    phase2CorrectGuessesMap: { // Para asegurar que cada color se cuenta solo una vez
+        type: Map,
+        of: mongoose.Schema.Types.ObjectId, // { 'Color': playerId }
+        default: {}
+    },
+    successfulGuesser: { // Quién ganó (balance_win) o equipo (phase2_win - puede ser null)
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Player',
+        default: null
+    },
+    // roundHistory: [{...}] // Opcional si se quiere mantener historial detallado
 
 }, {
     timestamps: true // Añade createdAt y updatedAt
 });
 
-// Método helper para verificar si la balanza principal está equilibrada
+// Método helper para verificar si la balanza principal está EXACTAMENTE equilibrada
 GameSchema.methods.isMainScaleBalanced = function() {
-    if (!this.mainScale) return true; // Default es {} ahora
-    const difference = Math.abs((this.mainScale.leftWeight || 0) - (this.mainScale.rightWeight || 0));
-    // Regla: Asumamos <= 1g ya que son enteros.
-    const threshold = 1;
-    return difference <= threshold;
+    if (!this.mainScale) return false; // Si no existe, no está balanceada
+    const left = this.mainScale.leftWeight ?? 0; // Tratar null/undefined como 0
+    const right = this.mainScale.rightWeight ?? 0;
+    // Exactamente iguales Y al menos uno es diferente de cero (para evitar balance inicial 0=0)
+    return left === right && (left !== 0 || right !== 0);
 };
 
 module.exports = mongoose.model('Game', GameSchema);

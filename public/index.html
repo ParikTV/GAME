@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juego de Escala - HackerBytes</title> <link rel="preconnect" href="https://fonts.googleapis.com">
+    <title>Juego de Escala v2 - HackerBytes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -13,12 +14,13 @@
     <div class="container">
 
         <div id="welcome-screen" class="screen">
-            <h1 class="app-title animatable-on-load">Juego de Escala</h1>
-            <p class="app-subtitle animatable-on-load">Edición Hacker Bytes</p> <div class="options-container">
+            <h1 class="app-title animatable-on-load">Juego de Escala v2</h1>
+            <p class="app-subtitle animatable-on-load">Edición Hacker Bytes</p>
+            <div class="options-container">
                 <button id="create-btn" class="btn primary-btn large-btn animatable-button"><i class="fas fa-plus-circle"></i> Crear Juego</button>
                 <button id="join-btn" class="btn secondary-btn large-btn animatable-button"><i class="fas fa-sign-in-alt"></i> Unirse a Juego</button>
             </div>
-            <footer class="app-footer animatable-on-load">Adaptación del Juego de Escala</footer>
+            <footer class="app-footer animatable-on-load">Adaptación del Juego de Escala - Votación y Fase 2</footer>
         </div>
 
         <div id="create-screen" class="screen">
@@ -68,7 +70,7 @@
                     <li class="waiting-placeholder">Esperando jugadores...</li>
                 </ul>
             </div>
-            <p id="host-instructions" class="info-text hidden animatable-on-load">Esperando jugadores... Presiona Iniciar cuando estén listos (mínimo 2).</p>
+            <p id="host-instructions" class="info-text hidden animatable-on-load">Esperando jugadores... Presiona Iniciar cuando estén listos (mínimo 2 activos).</p>
             <button id="start-game-btn" class="btn primary-btn large-btn hidden animatable-on-load" disabled><i class="fas fa-play"></i> Iniciar Juego</button>
             <p id="player-wait-message" class="info-text hidden animatable-on-load">Esperando a que el host inicie el juego...</p>
         </div>
@@ -77,28 +79,28 @@
             <header class="game-header">
                 <div class="turn-timer-info card animatable-on-load">
                     <h3>Turno de: <span id="current-player-indicator" class="highlight">Jugador X (T#)</span></h3>
-                    <div class="timer-container">
-                        <i class="fas fa-stopwatch"></i> <span id="game-timer" aria-live="polite">--:--</span>
                     </div>
-                </div>
                 <div class="known-info card animatable-on-load">
                     <h4><i class="fas fa-info-circle"></i> Pista Inicial:</h4>
                     <p id="known-info-text">-</p>
                 </div>
-                 <div class="last-guess-info card hidden animatable-on-load">
-                    <h4><i class="fas fa-history"></i> Última Adivinanza:</h4>
-                    <p id="last-guess-text">-</p>
-                </div>
+                 <div id="phase2-info-card" class="card animatable-on-load phase2-element hidden">
+                    <h4><i class="fas fa-crosshairs"></i> Fase 2: Adivinanza</h4>
+                    <p>Ronda: <strong id="phase2-round-indicator">1 / 3</strong></p>
+                    <p>Aciertos del Equipo: <strong id="phase2-correct-total">0 / 3</strong></p>
+                    <p>Premio Acumulado: <strong id="current-prize-pot" class="success-highlight">10,000,000</strong> HB</p>
+               </div>
             </header>
 
             <div id="grand-prize-display" class="card grand-prize-card animatable-on-load">
-                <h4><i class="fas fa-trophy"></i> Premio Mayor <i class="fas fa-trophy"></i></h4>
+                <h4><i class="fas fa-trophy"></i> Premio Potencial <i class="fas fa-trophy"></i></h4>
                 <p class="prize-amount">
-                    <span class="amount-number">10,000,000</span>
+                    <span id="prize-amount-display" class="amount-number">10,000,000</span>
                     <span class="currency-name">Hacker Bytes</span>
                 </p>
-                <p class="prize-condition">(Al adivinar todos los pesos correctamente)</p>
+                <p id="prize-condition-display" class="prize-condition">(Equilibra la balanza para votar si continuar)</p>
             </div>
+
             <main class="game-main-content">
                 <section class="scales-area animatable-on-load">
                     <div class="scale-instance main-scale-instance">
@@ -111,18 +113,16 @@
                                  <div class="scale-arm" id="main-scale-arm">
                                     <div class="scale-platform left" id="main-left-platform-visual">
                                         <div class="material-stack" id="main-left-materials"></div>
-                                        </div>
+                                    </div>
                                     <div class="scale-center"><div class="scale-pivot"></div></div>
                                     <div class="scale-platform right" id="main-right-platform-visual">
                                         <div class="material-stack" id="main-right-materials"></div>
-                                         </div>
+                                    </div>
                                 </div>
                                 <div class="scale-base"></div>
                             </div>
                         </div>
-                         <button id="guess-weights-btn" class="btn secondary-btn guess-btn" disabled>
-                            <i class="fas fa-question-circle"></i> Adivinar Pesos (2/2) </button>
-                    </div>
+                         </div>
 
                     <div class="scale-instance secondary-scale-instance">
                          <div class="scale-header">
@@ -133,16 +133,16 @@
                                 <div class="scale-arm" id="secondary-scale-arm">
                                      <div class="scale-platform left" id="secondary-left-platform-visual">
                                          <div class="material-stack" id="secondary-left-materials"></div>
-                                         </div>
+                                     </div>
                                     <div class="scale-center"><div class="scale-pivot"></div></div>
                                     <div class="scale-platform right" id="secondary-right-platform-visual">
                                         <div class="material-stack" id="secondary-right-materials"></div>
-                                        </div>
+                                    </div>
                                 </div>
                                 <div class="scale-base"></div>
                             </div>
                         </div>
-                         </div>
+                    </div>
                 </section>
 
                 <section id="player-area" class="player-area card animatable-on-load">
@@ -151,37 +151,51 @@
                         <div id="waiting-turn-indicator" class="waiting-turn hidden"><p>Esperando turno de otros...</p></div>
                     </div>
 
-                    <div class="player-currency card">
-                        <h4><i class="fas fa-database"></i> Mis Hacker Bytes: <span id="my-hacker-bytes-display">0</span></h4>
+                    <div class="player-currency card hidden"> <h4><i class="fas fa-database"></i> Mis Hacker Bytes: <span id="my-hacker-bytes-display">0</span></h4>
                     </div>
 
-                    <h4>Mis Minerales (<span id="my-mineral-count">10</span>):</h4>
-                    <div id="my-inventory-container" class="inventory-style">
-                        </div>
+                    <div id="phase1-actions" class="phase1-element">
+                        <h4>Mis Minerales (<span id="my-mineral-count">10</span>):</h4>
+                        <div id="my-inventory-container" class="inventory-style">
+                            </div>
 
-                    <div id="placement-controls-section" class="placement-controls-section hidden">
-                         <h4>Colocar <span id="selected-count">0</span> Mineral(es):</h4>
-                         <div class="placement-form-group">
-                            <label for="target-scale-select">En Balanza:</label>
-                            <select id="target-scale-select" aria-label="Seleccionar balanza objetivo">
-                                <option value="main">Principal</option>
-                                <option value="secondary">Secundaria</option>
-                            </select>
+                        <div id="placement-controls-section" class="placement-controls-section hidden">
+                             <h4>Colocar <span id="selected-count">0</span> Mineral(es):</h4>
+                             <div class="placement-form-group">
+                                <label for="target-scale-select">En Balanza:</label>
+                                <select id="target-scale-select" aria-label="Seleccionar balanza objetivo">
+                                    <option value="main">Principal</option>
+                                    <option value="secondary">Secundaria</option>
+                                </select>
+                            </div>
+                            <div class="placement-form-group">
+                                <label for="target-side-select">En Lado:</label>
+                                <select id="target-side-select" aria-label="Seleccionar lado objetivo">
+                                    <option value="left">Izquierdo</option>
+                                    <option value="right">Derecho</option>
+                                </select>
+                             </div>
+                             <div class="placement-actions">
+                                <button id="place-selected-btn" class="btn primary-btn" disabled><i class="fas fa-check"></i> Colocar</button>
+                                <button id="cancel-placement-btn" class="btn secondary-btn small-btn"><i class="fas fa-times"></i> Limpiar</button>
+                             </div>
+                             <p id="placement-error" class="error-text hidden">Debes seleccionar y colocar al menos 2 minerales.</p>
                         </div>
-                        <div class="placement-form-group">
-                            <label for="target-side-select">En Lado:</label>
-                            <select id="target-side-select" aria-label="Seleccionar lado objetivo">
-                                <option value="left">Izquierdo</option>
-                                <option value="right">Derecho</option>
-                            </select>
+                        <p id="cannot-place-message" class="info-text hidden">No tienes suficientes minerales para colocar.</p>
+                    </div> <div id="phase2-actions" class="phase2-element hidden">
+                         <h4><i class="fas fa-search"></i> Adivinar Peso Individual</h4>
+                         <p>Intentos este turno: <strong id="phase2-attempts-left">2 / 2</strong></p>
+                         <div class="guess-single-form form-group">
+                             <label for="guess-single-color-select">Color:</label>
+                             <select id="guess-single-color-select" aria-label="Seleccionar color a adivinar">
+                                  <option value="">-- Selecciona Color --</option>
+                                  </select>
+                             <label for="guess-single-weight-input" style="margin-left: 10px;">Peso:</label>
+                             <input type="number" id="guess-single-weight-input" min="1" max="20" step="1" placeholder="1-20" aria-label="Ingresar peso adivinado">
+                             <button id="guess-single-weight-btn" class="btn primary-btn small-btn" disabled><i class="fas fa-check"></i> Adivinar</button>
                          </div>
-                         <div class="placement-actions">
-                            <button id="place-selected-btn" class="btn primary-btn" disabled><i class="fas fa-check"></i> Colocar</button>
-                            <button id="cancel-placement-btn" class="btn secondary-btn small-btn"><i class="fas fa-times"></i> Limpiar</button>
-                         </div>
-                         <p id="placement-error" class="error-text hidden">Debes seleccionar y colocar al menos 2 minerales.</p>
-                    </div>
-                    <p id="cannot-place-message" class="info-text hidden">No tienes suficientes minerales para colocar.</p>
+                         <div id="single-guess-feedback" class="info-text" style="margin-top: 10px;">Selecciona un color y un peso.</div>
+                    </div> <button id="pass-turn-btn" class="btn secondary-btn" style="margin-top: 20px;" disabled><i class="fas fa-forward"></i> Pasar Turno</button>
 
                 </section>
             </main>
@@ -191,14 +205,12 @@
                 <ul id="game-players-list" aria-live="polite">
                     </ul>
             </aside>
-        </div>
-
-        <div id="final-results-screen" class="screen">
+        </div> <div id="final-results-screen" class="screen">
             <h2 id="final-result-title" class="animatable-on-load"><i class="fas fa-flag-checkered"></i> Fin del Juego</h2>
             <div class="card result-summary animatable-on-load">
                 <h3 id="final-result-message">Resultado: Desconocido</h3>
                 <p id="final-winners">Ganadores: -</p>
-                </div>
+                <p id="final-prize-won">Premio Ganado: <strong id="final-prize-amount" class="success-highlight">-</strong></p> </div>
             <div class="card final-weights-reveal animatable-on-load">
                 <h4>Pesos Reales de los Minerales:</h4>
                 <ul id="final-actual-weights">
@@ -209,39 +221,21 @@
             </div>
         </div>
 
-        <div id="guess-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="guess-modal-title">
+         <div id="voting-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="vote-modal-title">
              <div class="modal-content">
-                 <span class="close-btn" title="Cerrar" aria-label="Cerrar">&times;</span>
-                 <h4 id="guess-modal-title"><i class="fas fa-question-circle"></i> Adivinar Pesos (1-20g)</h4>
-                 <p>Introduce el peso que crees que tiene cada mineral. ¡Debe ser exacto! (Cuesta <span id="guess-cost-display">100</span> Hacker Bytes)</p>
-                 <form id="guess-form">
-                      <div class="guess-grid">
-                         <div class="form-group guess-group">
-                             <label for="guess-rojo" class="rojo">Rojo:</label>
-                             <input type="number" id="guess-rojo" name="Rojo" required min="1" max="20" step="1" inputmode="numeric" aria-required="true" placeholder="1-20">
-                         </div>
-                         <div class="form-group guess-group">
-                             <label for="guess-amarillo" class="amarillo">Amarillo:</label>
-                             <input type="number" id="guess-amarillo" name="Amarillo" required min="1" max="20" step="1" inputmode="numeric" aria-required="true" placeholder="1-20">
-                         </div>
-                         <div class="form-group guess-group">
-                             <label for="guess-verde" class="verde">Verde:</label>
-                             <input type="number" id="guess-verde" name="Verde" required min="1" max="20" step="1" inputmode="numeric" aria-required="true" placeholder="1-20">
-                         </div>
-                         <div class="form-group guess-group">
-                             <label for="guess-azul" class="azul">Azul:</label>
-                             <input type="number" id="guess-azul" name="Azul" required min="1" max="20" step="1" inputmode="numeric" aria-required="true" placeholder="1-20">
-                         </div>
-                         <div class="form-group guess-group">
-                             <label for="guess-purpura" class="purpura">Púrpura:</label>
-                             <input type="number" id="guess-purpura" name="Purpura" required min="1" max="20" step="1" inputmode="numeric" aria-required="true" placeholder="1-20">
-                         </div>
-                    </div>
-                    <div class="modal-actions">
-                        <button type="submit" class="btn primary-btn">Enviar Adivinanza</button>
-                        <button type="button" class="btn secondary-btn modal-cancel-btn">Cancelar</button>
-                    </div>
-                </form>
+                 <h4 id="vote-modal-title"><i class="fas fa-vote-yea"></i> ¡Balanza Equilibrada!</h4>
+                 <p><strong id="balancer-name-modal">Jugador X</strong> ha equilibrado la balanza principal.</p>
+                 <p class="vote-question">¿Continuar a Fase 2 para intentar ganar <strong class="highlight">MÁS</strong> Hacker Bytes?</p>
+                 <div class="vote-warning card">
+                     <p><strong><i class="fas fa-exclamation-triangle"></i> ADVERTENCIA:</strong></p>
+                     <p>Si votan SÍ, tendrán <strong>3 rondas</strong> para adivinar al menos <strong>3 pesos</strong> diferentes. Cada acierto correcto suma <strong>+2,000,000</strong> al premio total.</p>
+                     <p class="error-text"><strong>¡Si no lo logran al final de las 3 rondas, perderán TODO el premio acumulado!</strong></p>
+                 </div>
+                 <div id="vote-status-modal" class="info-text" style="margin-top: 15px;" aria-live="polite">Esperando votos...</div>
+                 <div class="modal-actions">
+                     <button id="vote-yes-btn" class="btn primary-btn" disabled><i class="fas fa-check"></i> SÍ, continuar</button>
+                     <button id="vote-no-btn" class="btn secondary-btn" disabled><i class="fas fa-times"></i> NO, terminar ahora</button>
+                 </div>
              </div>
          </div>
 
@@ -251,19 +245,8 @@
                  <h4 id="notification-title"><i class="fas fa-info-circle"></i> Notificación</h4>
                  <p id="notification-message"></p>
                  <div class="modal-actions">
-                      <button id="notification-ok" class="btn primary-btn">Aceptar</button>
-                  </div>
+                      <button id="notification-ok" class="btn primary-btn modal-cancel-btn">Aceptar</button> </div>
              </div>
-         </div>
-
-         <div id="jackpot-animation" class="modal" style="display: none; background-color: rgba(0,0,0,0.85); z-index: 1010; align-items: center; justify-content: center;">
-             <div class="jackpot-content">
-                 <div class="jackpot-title">¡PREMIO MAYOR!</div>
-                 <div class="jackpot-amount">
-                     <span class="currency-icon">HB</span>
-                     10,000,000 </div>
-                 <div class="jackpot-subtitle">Hacker Bytes</div>
-                 </div>
          </div>
 
          <div id="hackerbyte-logo-container" title="Hacker Bytes">
@@ -273,8 +256,7 @@
             </div>
         </div>
 
-    </div>
-    <script src="/socket.io/socket.io.js"></script>
+        </div> <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
     <script src="app.js"></script>
 </body>

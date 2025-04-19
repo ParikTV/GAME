@@ -18,18 +18,10 @@ const PlayerSchema = new mongoose.Schema({
         required: true
     },
     // Los 10 minerales específicos asignados a este jugador al inicio
-    inventory: [MineralSchema],
-    pieces: { // Moneda del juego para adivinar
-        type: Number,
-        default: 1 // Regla original parece dar 1 pieza al inicio? Ajustar si no.
-    },
+    inventory: [MineralSchema], // Mantiene el peso en el backend
+
     // Indica si el jugador aún tiene suficientes minerales para jugar (>= 2)
     canPlaceMinerals: {
-        type: Boolean,
-        default: true
-    },
-    // Indica si el jugador puede intentar adivinar (puede depender de si tiene minerales o piezas)
-    canGuess: {
         type: Boolean,
         default: true
     },
@@ -38,6 +30,21 @@ const PlayerSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+
+    // --- NUEVOS CAMPOS ---
+    hackerBytes: { // Premio acumulado personal (generalmente ganado al final)
+        type: Number,
+        default: 0
+    },
+    guessedColorsPhase2: { // Colores que este jugador ya INTENTÓ adivinar en Fase 2
+        type: [String],
+        default: []
+    },
+    phase2GuessAttemptsThisTurn: { // Intentos restantes en el turno ACTUAL de Fase 2
+        type: Number,
+        default: 0 // Se setea al inicio del turno en Fase 2
+    },
+
     // Campos de conexión originales (opcional mantenerlos)
     connectionInfo: {
         ip: String,
@@ -45,15 +52,20 @@ const PlayerSchema = new mongoose.Schema({
         connectionTime: Date,
         disconnectionTime: Date
      }
+    // --- CAMPOS ELIMINADOS ---
+    // pieces: Number,
+    // canGuess: Boolean,
+    // totalGuessAttemptsMade: Number, // Ya no se usa globalmente, ahora es por turno en Fase 2
+
 }, {
     timestamps: true // Añade createdAt y updatedAt automáticamente
 });
 
 // Hook pre-save para actualizar estados calculados
 PlayerSchema.pre('save', function(next) {
-  this.canPlaceMinerals = this.inventory && this.inventory.length >= 2;
-  // Ajustar canGuess según las reglas exactas (¿necesita minerales? ¿piezas?)
-  this.canGuess = this.inventory && this.inventory.length >= 1 && this.pieces >= 1; // Ejemplo: necesita >=1 mineral y >=1 pieza
+  // Solo actualizar canPlaceMinerals basado en inventario
+  this.canPlaceMinerals = this.isActive && this.inventory && this.inventory.length >= 2;
+  // canGuess ya no se calcula aquí
   next();
 });
 
