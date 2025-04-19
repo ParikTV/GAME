@@ -58,8 +58,8 @@ const mainLeftPlatformVisual = document.getElementById('main-left-platform-visua
 const mainRightPlatformVisual = document.getElementById('main-right-platform-visual');
 const mainLeftMaterials = document.getElementById('main-left-materials');
 const mainRightMaterials = document.getElementById('main-right-materials');
-const mainLeftWeight = document.getElementById('main-left-weight'); // Total weight
-const mainRightWeight = document.getElementById('main-right-weight'); // Total weight
+const mainLeftWeight = document.getElementById('main-left-weight'); // Total weight (YA NO SE USA PARA MOSTRAR)
+const mainRightWeight = document.getElementById('main-right-weight'); // Total weight (YA NO SE USA PARA MOSTRAR)
 const mainBalanceStatus = document.getElementById('main-balance-status');
 
 const secondaryScaleArm = document.getElementById('secondary-scale-arm');
@@ -67,8 +67,8 @@ const secondaryLeftPlatformVisual = document.getElementById('secondary-left-plat
 const secondaryRightPlatformVisual = document.getElementById('secondary-right-platform-visual');
 const secondaryLeftMaterials = document.getElementById('secondary-left-materials');
 const secondaryRightMaterials = document.getElementById('secondary-right-materials');
-const secondaryLeftWeight = document.getElementById('secondary-left-weight'); // Total weight
-const secondaryRightWeight = document.getElementById('secondary-right-weight'); // Total weight
+const secondaryLeftWeight = document.getElementById('secondary-left-weight'); // Total weight (YA NO SE USA PARA MOSTRAR)
+const secondaryRightWeight = document.getElementById('secondary-right-weight'); // Total weight (YA NO SE USA PARA MOSTRAR)
 
 // Área del Jugador
 const myTurnIndicator = document.getElementById('my-turn-indicator');
@@ -233,17 +233,17 @@ function updateSingleScaleDisplay(scalePrefix, scaleData) {
     const scaleArm = document.getElementById(`${scalePrefix}-scale-arm`);
     const leftPlatform = document.getElementById(`${scalePrefix}-left-platform-visual`);
     const rightPlatform = document.getElementById(`${scalePrefix}-right-platform-visual`);
-    const leftWeightEl = document.getElementById(`${scalePrefix}-left-weight`);
-    const rightWeightEl = document.getElementById(`${scalePrefix}-right-weight`);
+    const leftWeightEl = document.getElementById(`${scalePrefix}-left-weight`); // Referencia mantenida, pero no se usa para mostrar
+    const rightWeightEl = document.getElementById(`${scalePrefix}-right-weight`); // Referencia mantenida, pero no se usa para mostrar
     const leftMaterialsEl = document.getElementById(`${scalePrefix}-left-materials`);
     const rightMaterialsEl = document.getElementById(`${scalePrefix}-right-materials`);
 
     const leftWeight = scaleData.leftWeight || 0;
     const rightWeight = scaleData.rightWeight || 0;
 
-    // Actualizar pesos TOTALES mostrados
-    if (leftWeightEl) leftWeightEl.textContent = formatWeight(leftWeight);
-    if (rightWeightEl) rightWeightEl.textContent = formatWeight(rightWeight);
+    // Actualizar pesos TOTALES mostrados - LÍNEAS ELIMINADAS/COMENTADAS
+    // if (leftWeightEl) leftWeightEl.textContent = formatWeight(leftWeight);
+    // if (rightWeightEl) rightWeightEl.textContent = formatWeight(rightWeight);
 
     // Renderizar pilas de materiales (SOLO TIPO)
     renderScaleMaterialsStack(leftMaterialsEl, scaleData.leftMaterials || []);
