@@ -555,11 +555,11 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Colocar Minerales (MODIFICADO para iniciar votación)
+    // Colocar Minerales (MODIFICADO para nueva regla y votación)
     socket.on('placeMinerals', async ({ gameId, playerId, placements }) => {
          try {
             const game = await Game.findById(gameId);
-             const player = await Player.findById(playerId).select('+inventory'); // Cargar inventario
+            const player = await Player.findById(playerId).select('+inventory'); // Cargar inventario
 
             if (!game || !player) return socket.emit('error', { message: "Juego o jugador no encontrado." });
             if (game.status !== 'playing') return socket.emit('error', { message: "El juego no está en fase de colocación." });
@@ -569,7 +569,12 @@ io.on('connection', (socket) => {
              player.canPlaceMinerals = player.isActive && player.inventory && player.inventory.length >= 2;
             if (!player.canPlaceMinerals) return socket.emit('error', { message: "No tienes suficientes minerales." });
 
-            if (!Array.isArray(placements) || placements.length < 2) return socket.emit('error', { message: "Debes colocar al menos 2 minerales." });
+            // --- NUEVA VALIDACIÓN: Cantidad Par y Mínimo 2 ---
+            if (!Array.isArray(placements) || placements.length < 2 || placements.length % 2 !== 0) {
+                console.warn(`placeMinerals (${player.name}): Intento de colocar cantidad inválida (${placements?.length || 0}).`);
+                return socket.emit('error', { message: 'Debes colocar una cantidad par de minerales (2, 4, 6...).' });
+            }
+            // --- FIN NUEVA VALIDACIÓN ---
 
             const currentInventory = [...player.inventory]; // Copia para operar
             const mineralsToPlaceDetails = []; // Guardar { mineral, placement }
@@ -577,11 +582,17 @@ io.on('connection', (socket) => {
 
             // 1. Validar y extraer minerales del inventario
             for (const placement of placements) {
-                if (!placement || !placement.mineralInstanceId || !placement.targetScale || !placement.targetSide) throw new Error("Datos de colocación inválidos.");
-                if (placedInstanceIds.has(placement.mineralInstanceId)) throw new Error("No puedes colocar el mismo mineral dos veces.");
+                if (!placement || !placement.mineralInstanceId || !placement.targetScale || !placement.targetSide) {
+                    throw new Error("Datos de colocación inválidos recibidos.");
+                }
+                if (placedInstanceIds.has(placement.mineralInstanceId)) {
+                    throw new Error("No puedes colocar el mismo mineral dos veces en un turno.");
+                }
 
                 const mineralIndex = currentInventory.findIndex(m => m.instanceId === placement.mineralInstanceId);
-                if (mineralIndex === -1) throw new Error(`Mineral ${placement.mineralInstanceId} no encontrado en tu inventario.`);
+                if (mineralIndex === -1) {
+                    throw new Error(`Mineral ${placement.mineralInstanceId} no encontrado en tu inventario.`);
+                }
 
                 const mineral = currentInventory.splice(mineralIndex, 1)[0]; // Quitar del inventario temporal
                 mineralsToPlaceDetails.push({ mineral, placement });
@@ -646,6 +657,7 @@ io.on('connection', (socket) => {
              } catch (e) { console.error("Error retransmitiendo estado tras fallo:", e); }
         }
     });
+
 
     // Votar para Fase 2
     socket.on('castVote', async ({ gameId, playerId, vote }) => {

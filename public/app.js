@@ -377,23 +377,41 @@ function handleInventoryItemClick(event) {
 }
 
 
-/** Actualiza la sección de controles de colocación (FASE 1) */
+/** Actualiza la sección de controles de colocación (FASE 1) - MODIFICADO */
 function updatePlacementControls() {
     if (!placementControlsSection || !gameState) return;
+
     const count = selectedMineralInstanceIds.length;
-    // Puede colocar si es su turno, en fase 'playing', tiene minerales, y seleccionó >= 2
-    const canPlaceSelection = gameState.myTurn && gameState.status === 'playing' && gameState.iCanPlaceMinerals && count >= 2;
-    // Mostrar controles si tiene algo seleccionado Y es su turno Y está en fase 'playing' Y puede colocar
+    const isEven = count > 0 && count % 2 === 0;
+    const hasEnough = count >= 2;
+
+    // Puede colocar si: es su turno, en fase 'playing', puede colocar en general, seleccionó suficientes Y la cantidad es par.
+    const canPlaceSelection = gameState.myTurn && gameState.status === 'playing' && gameState.iCanPlaceMinerals && hasEnough && isEven;
+
+    // Mostrar controles si: tiene algo seleccionado Y es su turno Y está en fase 'playing' Y puede colocar en general.
     const shouldShowControls = count > 0 && gameState.myTurn && gameState.status === 'playing' && gameState.iCanPlaceMinerals;
 
     updatePlacementControlsVisibility(shouldShowControls);
 
     if (selectedCountSpan) selectedCountSpan.textContent = count;
     if (placeSelectedBtn) placeSelectedBtn.disabled = !canPlaceSelection;
-    if (placementError) placementError.classList.toggle('hidden', count === 0 || count >= 2);
+
+    // Actualizar mensaje de error
+    if (placementError) {
+        let errorMsg = '';
+        if (count > 0 && !hasEnough) {
+            errorMsg = 'Selecciona al menos 2 minerales.';
+        } else if (count > 0 && !isEven) {
+            errorMsg = 'Debes seleccionar una cantidad PAR (2, 4, 6...).';
+        }
+        placementError.textContent = errorMsg;
+        placementError.classList.toggle('hidden', errorMsg === '');
+    }
+
     if(targetScaleSelect) targetScaleSelect.disabled = count === 0;
     if(targetSideSelect) targetSideSelect.disabled = count === 0;
 }
+
 
 /** Controla la visibilidad animada de los controles de colocación (sin cambios) */
 function updatePlacementControlsVisibility(shouldShow) {
@@ -649,7 +667,13 @@ startGameBtn?.addEventListener('click', () => {
 
 // Colocar Minerales Seleccionados (Fase 1)
 placeSelectedBtn?.addEventListener('click', () => {
-    if (placeSelectedBtn.disabled || selectedMineralInstanceIds.length < 2) return;
+    const count = selectedMineralInstanceIds.length;
+    // Doble chequeo: Botón debería estar deshabilitado si no es válido, pero verificar de nuevo
+    if (placeSelectedBtn.disabled || count < 2 || count % 2 !== 0) {
+        updatePlacementControls(); // Actualizar UI por si acaso
+        return;
+    }
+
     const placements = selectedMineralInstanceIds.map(instanceId => ({
         mineralInstanceId: instanceId,
         targetScale: targetScaleSelect?.value || 'main',
@@ -749,7 +773,16 @@ socket.on('error', (data) => {
      if (startGameBtn?.classList.contains('loading')) setLoadingState(startGameBtn, false);
      // Habilitar controles de nuevo si corresponde
      if (gameState?.myTurn && (gameState.status === 'playing' || gameState.status === 'guessing_phase') && passTurnBtn) passTurnBtn.disabled = false;
-     if (gameState?.myTurn && gameState.status === 'playing' && placeSelectedBtn && selectedMineralInstanceIds.length >= 2) placeSelectedBtn.disabled = false;
+     if (gameState?.myTurn && gameState.status === 'playing' && placeSelectedBtn) {
+        // Habilitar solo si la selección es válida (par y >= 2)
+         const count = selectedMineralInstanceIds.length;
+         placeSelectedBtn.disabled = !(count >= 2 && count % 2 === 0);
+     }
+     if (gameState?.myTurn && gameState.status === 'playing' && cancelPlacementBtn) cancelPlacementBtn.disabled = false;
+     if (gameState?.myTurn && gameState.status === 'playing' && myInventoryContainer) {
+         myInventoryContainer.querySelectorAll('.inventory-item').forEach(btn => btn.disabled = false); // Habilitar inventario si falló colocar
+     }
+
 
 });
 
@@ -813,7 +846,7 @@ socket.on('gameStateUpdated', ({ gameState: receivedGameState }) => {
     if (guessSingleWeightBtn?.disabled && !receivedGameState.myTurn) guessSingleWeightBtn.disabled = false; // Reactivar si ya no es mi turno
 
 
-    // Si el estado es 'playing' o 'guessing_phase' y estamos en la pantalla correcta
+    // Si el estado es 'playing' o 'guessing_phase' o 'voting' y estamos en la pantalla correcta
     if ((receivedGameState.status === 'playing' || receivedGameState.status === 'guessing_phase' || receivedGameState.status === 'voting') && currentScreen !== screens.game) {
         console.log(`CLIENT LOG: gameStateUpdated recibido (${receivedGameState.status}), cambiando a pantalla de juego.`);
         gameState = receivedGameState; // Guardar estado ANTES de cambiar pantalla
