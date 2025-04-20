@@ -609,3 +609,71 @@ body.guessing-phase-active #game-players-list .player-minerals {
      #voting-modal .vote-warning p { font-size: 0.85rem;}
      #final-actual-weights li { font-size: 1rem; }
 }
+/* public/styles.css */
+/* Añadir al final del archivo existente */
+
+/* --- Estilos para Modal de Adivinanza Fase 1 --- */
+#guess-all-phase1-modal .modal-content {
+    max-width: 650px; /* Un poco más ancho para los inputs */
+}
+
+#guess-all-phase1-modal h4 {
+    color: var(--accent-primary); /* Usar color primario */
+    margin-bottom: 20px;
+    text-align: center;
+}
+#guess-all-phase1-modal h4 i {
+    margin-right: 8px;
+}
+
+.guess-all-inputs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* 2 o 3 columnas */
+    gap: 15px 20px; /* Espacio entre filas y columnas */
+    margin-bottom: 20px;
+}
+
+.guess-all-inputs-grid .form-group {
+    margin-bottom: 0; /* Quitar margen inferior individual */
+    display: flex;
+    flex-direction: column; /* Label arriba, input abajo */
+    align-items: stretch; /* Ocupar ancho */
+}
+
+.guess-all-inputs-grid .form-group label {
+    width: auto; /* Ancho automático */
+    text-align: left; /* Alinear a la izquierda */
+    margin-bottom: 6px;
+    display: flex; /* Para alinear indicador y texto */
+    align-items: center;
+    gap: 6px;
+}
+
+.guess-all-inputs-grid .form-group input[type="number"] {
+    text-align: center; /* Centrar el número */
+    padding: 10px;
+    font-size: 1.1rem;
+    /* Hereda estilos de input general */
+}
+
+#guess-all-feedback {
+    text-align: center;
+    margin-top: 15px;
+    margin-bottom: 5px;
+    min-height: 1.2em;
+    font-weight: 600;
+}
+
+/* --- Media Query para Grid del Modal --- */
+@media (max-width: 480px) {
+    .guess-all-inputs-grid {
+        grid-template-columns: 1fr; /* Una columna en móviles */
+        gap: 10px;
+    }
+    .guess-all-inputs-grid .form-group input[type="number"] {
+        font-size: 1rem;
+    }
+    #guess-all-phase1-modal .modal-content {
+        padding: 20px 15px;
+    }
+}

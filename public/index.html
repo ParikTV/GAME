@@ -74,7 +74,6 @@
             <button id="start-game-btn" class="btn primary-btn large-btn hidden animatable-on-load" disabled><i class="fas fa-play"></i> Iniciar Juego</button>
             <p id="player-wait-message" class="info-text hidden animatable-on-load">Esperando a que el host inicie el juego...</p>
         </div>
-
         <div id="game-screen" class="screen">
             <header class="game-header">
                 <div class="turn-timer-info card animatable-on-load">
@@ -122,8 +121,7 @@
                                 <div class="scale-base"></div>
                             </div>
                         </div>
-                         </div>
-
+                    </div>
                     <div class="scale-instance secondary-scale-instance">
                          <div class="scale-header">
                             <h4>Balanza Secundaria</h4>
@@ -156,8 +154,7 @@
 
                     <div id="phase1-actions" class="phase1-element">
                         <h4>Mis Minerales (<span id="my-mineral-count">10</span>):</h4>
-                        <div id="my-inventory-container" class="inventory-style">
-                            </div>
+                        <div id="my-inventory-container" class="inventory-style"></div>
 
                         <div id="placement-controls-section" class="placement-controls-section hidden">
                              <h4>Colocar <span id="selected-count">0</span> Mineral(es):</h4>
@@ -182,21 +179,30 @@
                              <p id="placement-error" class="error-text hidden">Debes seleccionar y colocar al menos 2 minerales.</p>
                         </div>
                         <p id="cannot-place-message" class="info-text hidden">No tienes suficientes minerales para colocar.</p>
-                    </div> <div id="phase2-actions" class="phase2-element hidden">
+
+                        <div id="phase1-guess-all-action" class="phase1-element hidden" style="margin-top: 25px; padding-top: 15px; border-top: 1px dashed var(--border-color);">
+                            <h4>Opción Arriesgada:</h4>
+                            <button id="guess-all-phase1-btn" class="btn secondary-btn" style="width: 100%;"><i class="fas fa-question-circle"></i> Intentar Adivinar TODOS los Pesos</button>
+                            <p class="info-text" style="font-size: 0.8em; margin-top: 5px;">Acierta los 5 para ganar el premio total ahora. ¡Si fallas, solo ganas un premio menor por cada acierto!</p>
+                        </div>
+                    </div>
+
+                    <div id="phase2-actions" class="phase2-element hidden">
                          <h4><i class="fas fa-search"></i> Adivinar Peso Individual</h4>
                          <p>Intentos este turno: <strong id="phase2-attempts-left">2 / 2</strong></p>
                          <div class="guess-single-form form-group">
                              <label for="guess-single-color-select">Color:</label>
                              <select id="guess-single-color-select" aria-label="Seleccionar color a adivinar">
                                   <option value="">-- Selecciona Color --</option>
-                                  </select>
+                             </select>
                              <label for="guess-single-weight-input" style="margin-left: 10px;">Peso:</label>
                              <input type="number" id="guess-single-weight-input" min="1" max="20" step="1" placeholder="1-20" aria-label="Ingresar peso adivinado">
                              <button id="guess-single-weight-btn" class="btn primary-btn small-btn" disabled><i class="fas fa-check"></i> Adivinar</button>
                          </div>
                          <div id="single-guess-feedback" class="info-text" style="margin-top: 10px;">Selecciona un color y un peso.</div>
-                    </div> <button id="pass-turn-btn" class="btn secondary-btn" style="margin-top: 20px;" disabled><i class="fas fa-forward"></i> Pasar Turno</button>
+                    </div>
 
+                    <button id="pass-turn-btn" class="btn secondary-btn" style="margin-top: 20px;" disabled><i class="fas fa-forward"></i> Pasar Turno</button>
                 </section>
             </main>
 
@@ -205,7 +211,9 @@
                 <ul id="game-players-list" aria-live="polite">
                     </ul>
             </aside>
-        </div> <div id="final-results-screen" class="screen">
+        </div>
+
+        <div id="final-results-screen" class="screen">
             <h2 id="final-result-title" class="animatable-on-load"><i class="fas fa-flag-checkered"></i> Fin del Juego</h2>
             <div class="card result-summary animatable-on-load">
                 <h3 id="final-result-message">Resultado: Desconocido</h3>
@@ -221,7 +229,7 @@
             </div>
         </div>
 
-         <div id="voting-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="vote-modal-title">
+        <div id="voting-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="vote-modal-title">
              <div class="modal-content">
                  <h4 id="vote-modal-title"><i class="fas fa-vote-yea"></i> ¡Balanza Equilibrada!</h4>
                  <p><strong id="balancer-name-modal">Jugador X</strong> ha equilibrado la balanza principal.</p>
@@ -238,7 +246,6 @@
                  </div>
              </div>
          </div>
-
          <div id="notification-modal" class="modal" role="alertdialog" aria-modal="true" aria-labelledby="notification-title">
              <div class="modal-content">
                  <span class="close-btn" title="Cerrar" aria-label="Cerrar">&times;</span>
@@ -249,6 +256,44 @@
              </div>
          </div>
 
+         <div id="guess-all-phase1-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="guess-all-title">
+             <div class="modal-content">
+                 <span class="close-btn" title="Cerrar" aria-label="Cerrar">&times;</span>
+                 <h4 id="guess-all-title"><i class="fas fa-bullseye"></i> Adivinar Todos los Pesos (Fase 1)</h4>
+                 <p class="info-text">Ingresa tu adivinanza para el peso de cada mineral (1-20).</p>
+                 <form id="guess-all-phase1-form">
+                     <div class="guess-all-inputs-grid">
+                         <div class="form-group">
+                             <label for="guess-all-rojo"><span class="mineral-color-indicator rojo"></span> Rojo:</label>
+                             <input type="number" id="guess-all-rojo" name="Rojo" min="1" max="20" step="1" required aria-required="true" placeholder="1-20">
+                         </div>
+                         <div class="form-group">
+                             <label for="guess-all-amarillo"><span class="mineral-color-indicator amarillo"></span> Amarillo:</label>
+                             <input type="number" id="guess-all-amarillo" name="Amarillo" min="1" max="20" step="1" required aria-required="true" placeholder="1-20">
+                         </div>
+                         <div class="form-group">
+                             <label for="guess-all-verde"><span class="mineral-color-indicator verde"></span> Verde:</label>
+                             <input type="number" id="guess-all-verde" name="Verde" min="1" max="20" step="1" required aria-required="true" placeholder="1-20">
+                         </div>
+                         <div class="form-group">
+                             <label for="guess-all-azul"><span class="mineral-color-indicator azul"></span> Azul:</label>
+                             <input type="number" id="guess-all-azul" name="Azul" min="1" max="20" step="1" required aria-required="true" placeholder="1-20">
+                         </div>
+                         <div class="form-group">
+                             <label for="guess-all-purpura"><span class="mineral-color-indicator purpura"></span> Púrpura:</label>
+                             <input type="number" id="guess-all-purpura" name="Purpura" min="1" max="20" step="1" required aria-required="true" placeholder="1-20">
+                         </div>
+                     </div>
+                     <p id="guess-all-feedback" class="error-text hidden"></p>
+                     <div class="modal-actions">
+                         <button type="button" class="btn secondary-btn modal-cancel-btn">Cancelar</button>
+                         <button type="submit" id="submit-guess-all-btn" class="btn primary-btn"><i class="fas fa-check"></i> Enviar Adivinanza</button>
+                     </div>
+                 </form>
+             </div>
+         </div>
+
+
          <div id="hackerbyte-logo-container" title="Hacker Bytes">
             <div class="hackerbyte-logo">
                 <div class="h-char">H</div>
@@ -256,7 +301,8 @@
             </div>
         </div>
 
-        </div> <script src="/socket.io/socket.io.js"></script>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
     <script src="app.js"></script>
 </body>

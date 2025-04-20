@@ -35,6 +35,7 @@ const MINERALS_PER_PLAYER_PER_TYPE = 2;
 const MIN_WEIGHT = 1;
 const MAX_WEIGHT = 20;
 const INITIAL_PRIZE_POT = 10000000;
+const PHASE1_PARTIAL_GUESS_REWARD = 1000000; // Premio por acierto parcial en Fase 1
 const PHASE2_REWARD_PER_CORRECT_GUESS = 2000000;
 const PHASE2_TARGET_CORRECT_GUESSES = 3;
 const PHASE2_TOTAL_ROUNDS = 3;
@@ -155,10 +156,9 @@ async function findNextActivePlayer(game) {
         // Condición para poder jugar varía según la fase:
         let canPlayNext = false;
         if (populatedGame.status === 'playing') {
-             // Necesita poder colocar minerales (>=2 en inventario)
-             nextPlayer.canPlaceMinerals = nextPlayer.inventory && nextPlayer.inventory.length >= 2; // Recalcular por si acaso
-             canPlayNext = nextPlayer.canPlaceMinerals;
-             // console.log(`findNextActivePlayer (playing): Verificando ${nextPlayer.name}. Puede colocar: ${canPlayNext}`);
+             // En Fase 1 puede jugar si está activo (puede pasar o intentar adivinar todo)
+             canPlayNext = true; // La validación de si PUEDE colocar se hace en 'placeMinerals'
+             // console.log(`findNextActivePlayer (playing): Verificando ${nextPlayer.name}. Está activo.`);
         } else if (populatedGame.status === 'guessing_phase') {
              // Solo necesita estar activo
              canPlayNext = true; // Ya filtramos por activos
@@ -216,7 +216,7 @@ async function getGameStateForPlayer(gameId, playerId) {
              turnOrder: p.turnOrder,
              mineralCount: p.inventory?.length ?? 0,
              isActive: p.isActive,
-             canPlaceMinerals: p.canPlaceMinerals,
+             canPlaceMinerals: p.canPlaceMinerals, // Indica si tiene >= 2 minerales
              // Añadir info relevante para UI si es necesario (ej: ¿ya votó?)
              hasVoted: game.status === 'voting' && game.votingState?.votes?.get(p._id.toString()) !== null
         }));
@@ -322,14 +322,27 @@ async function broadcastGameOver(game) {
 
     // Asignar premios si es necesario ANTES de enviar estado final
     let finalPrizePerPlayer = 0;
-    if (populatedGame.status === 'finished_balance_win' || populatedGame.status === 'finished_phase2_win') {
-        // Premio se reparte entre los jugadores ACTIVOS al final del juego
-        const activePlayersAtEnd = populatedGame.players.filter(p => p.isActive);
-        if (activePlayersAtEnd.length > 0) {
-            finalPrizePerPlayer = Math.floor(populatedGame.currentPrizePot / activePlayersAtEnd.length);
-            console.log(`Repartiendo ${populatedGame.currentPrizePot} entre ${activePlayersAtEnd.length} jugadores. ${finalPrizePerPlayer} c/u.`);
+    if (populatedGame.status === 'finished_balance_win'
+        || populatedGame.status === 'finished_phase1_guess_win'
+        || populatedGame.status === 'finished_phase2_win')
+    {
+        let playersToReward = [];
+        if (populatedGame.status === 'finished_phase1_guess_win') {
+            // Solo gana el jugador que adivinó todo
+            const winner = populatedGame.players.find(p => p._id.equals(populatedGame.successfulGuesser?._id));
+            if (winner && winner.isActive) { // Asegurarse que sigue activo
+                playersToReward.push(winner);
+            }
+        } else {
+            // Para balance_win y phase2_win, ganan todos los activos al final
+            playersToReward = populatedGame.players.filter(p => p.isActive);
+        }
+
+        if (playersToReward.length > 0) {
+            finalPrizePerPlayer = Math.floor(populatedGame.currentPrizePot / playersToReward.length);
+            console.log(`Repartiendo ${populatedGame.currentPrizePot} entre ${playersToReward.length} jugador(es). ${finalPrizePerPlayer} c/u.`);
             // Actualizar DB (mejor si se hace en una transacción)
-            for (const player of activePlayersAtEnd) {
+            for (const player of playersToReward) {
                 try {
                     await Player.findByIdAndUpdate(player._id, { $inc: { hackerBytes: finalPrizePerPlayer } });
                 } catch (updateError) {
@@ -337,7 +350,7 @@ async function broadcastGameOver(game) {
                 }
             }
         } else {
-             console.log("Nadie activo al final, premio se pierde.");
+             console.log("Nadie activo al final (o ganador desconectó), premio se pierde.");
              populatedGame.currentPrizePot = 0; // Asegurar que el premio es 0 si nadie queda
         }
     } else {
@@ -654,6 +667,88 @@ io.on('connection', (socket) => {
              try {
                  const currentState = await getGameStateForPlayer(gameId, playerId);
                  if (currentState) socket.emit('gameStateUpdated', { gameState: currentState });
+             } catch (e) { console.error("Error retransmitiendo estado tras fallo:", e); }
+        }
+    });
+
+    // NUEVO: Adivinar Todos los Pesos en Fase 1
+    socket.on('guessAllWeightsPhase1', async ({ gameId, playerId, guesses }) => {
+        try {
+            const game = await Game.findById(gameId);
+            const player = await Player.findById(playerId);
+
+            // Validaciones
+            if (!game || !player || !player.isActive) return socket.emit('error', { message: "Juego o jugador inválido." });
+            if (game.status !== 'playing') return socket.emit('error', { message: "Solo puedes adivinar todo en la Fase 1." });
+            if (!game.currentPlayerId?.equals(player._id)) return socket.emit('error', { message: "No es tu turno." });
+            if (!guesses || typeof guesses !== 'object') return socket.emit('error', { message: "Formato de adivinanza inválido." });
+
+            console.log(`${player.name} intenta adivinar TODOS los pesos en ${game.gameCode}`);
+
+            let correctGuessesCount = 0;
+            let allTypesPresent = true;
+            const actualWeights = game.actualMineralWeights;
+
+            // Validar y contar aciertos
+            for (const type of MINERAL_TYPES) {
+                if (!guesses.hasOwnProperty(type)) {
+                    allTypesPresent = false;
+                    break; // Falta un tipo, no es válido
+                }
+                const guessNum = parseInt(guesses[type]);
+                if (isNaN(guessNum) || guessNum < MIN_WEIGHT || guessNum > MAX_WEIGHT) {
+                     return socket.emit('error', { message: `Peso inválido para ${type} (${MIN_WEIGHT}-${MAX_WEIGHT}).` });
+                }
+                if (guessNum === actualWeights[type]) {
+                    correctGuessesCount++;
+                }
+            }
+
+            if (!allTypesPresent) {
+                 return socket.emit('error', { message: "Debes adivinar el peso de los 5 tipos de minerales." });
+            }
+
+            // Procesar resultado
+            if (correctGuessesCount === 5) {
+                // --- ¡VICTORIA INSTANTÁNEA! ---
+                console.log(`¡VICTORIA! ${player.name} adivinó TODOS los pesos en Fase 1.`);
+                const totalPrize = game.currentPrizePot; // Gana el bote actual
+                player.hackerBytes += totalPrize;
+
+                game.status = 'finished_phase1_guess_win';
+                game.successfulGuesser = player._id;
+                // game.currentPrizePot se mantiene como el premio ganado por el jugador
+
+                await player.save();
+                await game.save();
+                await broadcastGameOver(game); // Notificar fin de juego
+
+            } else {
+                // --- ACIERTOS PARCIALES O NINGUNO ---
+                console.log(`${player.name} adivinó ${correctGuessesCount}/5 pesos. Gana premio parcial.`);
+                const partialPrize = correctGuessesCount * PHASE1_PARTIAL_GUESS_REWARD;
+                if (partialPrize > 0) {
+                    player.hackerBytes += partialPrize;
+                    await player.save();
+                }
+
+                // Notificar al jugador el resultado parcial
+                socket.emit('phase1GuessResult', {
+                    correctCount: correctGuessesCount,
+                    prizeWon: partialPrize
+                });
+
+                // Pasar el turno
+                await advanceTurn(game, io);
+            }
+
+        } catch (error) {
+             console.error(`Error en guessAllWeightsPhase1 para jugador ${playerId}:`, error);
+             socket.emit('error', { message: `Error al procesar la adivinanza: ${error.message || 'Error desconocido.'}` });
+             // Reintentar broadcast del estado actual si falla
+             try {
+                  const currentState = await getGameStateForPlayer(gameId, playerId);
+                  if (currentState) socket.emit('gameStateUpdated', { gameState: currentState });
              } catch (e) { console.error("Error retransmitiendo estado tras fallo:", e); }
         }
     });
@@ -1010,14 +1105,14 @@ async function advanceTurn(game, ioInstance) {
              // Si estábamos en Fase 2 y se traba, evaluar con los aciertos actuales
               game.status = game.phase2CorrectGuessesTotal >= PHASE2_TARGET_CORRECT_GUESSES ? 'finished_phase2_win' : 'finished_phase2_loss';
          } else if (game.status === 'playing') {
-             // Si estábamos en Fase 1 y nadie puede mover
+             // Si estábamos en Fase 1 y nadie puede mover o adivinar
              game.status = 'finished_failure'; // O 'finished_stalemate'
          } else {
               // Si el estado es 'voting' u otro inesperado y no hay siguiente, terminar por desconexión/error
               game.status = 'finished_disconnect_game';
          }
          // Asegurar que el premio sea 0 si no se ganó explícitamente
-         if (game.status !== 'finished_phase2_win' && game.status !== 'finished_balance_win') {
+         if (game.status !== 'finished_phase2_win' && game.status !== 'finished_balance_win' && game.status !== 'finished_phase1_guess_win') {
              game.currentPrizePot = 0;
          }
          game.currentPlayerId = null;
