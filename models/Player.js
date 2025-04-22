@@ -31,8 +31,8 @@ const PlayerSchema = new mongoose.Schema({
         default: true
     },
 
-    // --- NUEVOS CAMPOS ---
-    hackerBytes: { // Premio acumulado personal (generalmente ganado al final)
+    // --- CAMPOS PARA LÓGICA V2 ---
+    hackerBytes: { // Premio acumulado personal
         type: Number,
         default: 0
     },
@@ -42,7 +42,13 @@ const PlayerSchema = new mongoose.Schema({
     },
     phase2GuessAttemptsThisTurn: { // Intentos restantes en el turno ACTUAL de Fase 2
         type: Number,
-        default: 0 // Se setea al inicio del turno en Fase 2
+        default: 0
+    },
+    // NUEVO: Campo para rastrear intentos incorrectos en Fase 1
+    phase1IncorrectGuessAttempts: {
+        type: Map,
+        of: Number, // Almacena: { 'Color': count_incorrectos } (Ej: { 'Rojo': 1, 'Verde': 2 })
+        default: {}
     },
 
     // Campos de conexión originales (opcional mantenerlos)
@@ -52,10 +58,6 @@ const PlayerSchema = new mongoose.Schema({
         connectionTime: Date,
         disconnectionTime: Date
      }
-    // --- CAMPOS ELIMINADOS ---
-    // pieces: Number,
-    // canGuess: Boolean,
-    // totalGuessAttemptsMade: Number, // Ya no se usa globalmente, ahora es por turno en Fase 2
 
 }, {
     timestamps: true // Añade createdAt y updatedAt automáticamente
@@ -65,7 +67,6 @@ const PlayerSchema = new mongoose.Schema({
 PlayerSchema.pre('save', function(next) {
   // Solo actualizar canPlaceMinerals basado en inventario
   this.canPlaceMinerals = this.isActive && this.inventory && this.inventory.length >= 2;
-  // canGuess ya no se calcula aquí
   next();
 });
 
