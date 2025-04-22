@@ -226,12 +226,6 @@ input.input-error, select.input-error { /* Añadir select */
 .turn-timer-info, .known-info, #phase2-info-card { /* Incluir card fase 2 */
     padding: 15px;
 }
-/* Timer no se usa por ahora */
-/* .timer-container { font-size: 1.5rem; margin-top: 8px; font-weight: 700; color: var(--accent-secondary);} */
-/* #game-timer.timer-alert { color: var(--error-color); animation: pulse-red 1s infinite; } */
-/* @keyframes pulse-red { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } } */
-/* #game-timer.shake-animation { animation: shake 0.5s infinite; } */
-/* @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } } */
 
 /* Info Fase 2 Card */
 #phase2-info-card {
@@ -254,7 +248,7 @@ input.input-error, select.input-error { /* Añadir select */
     font-weight: 700;
 }
 
-/* Premio Potencial (Modificado) */
+/* Premio Potencial */
 #grand-prize-display {
     background: linear-gradient(145deg, var(--background-tertiary), var(--background-secondary));
     border: 1px solid var(--accent-secondary);
@@ -318,9 +312,9 @@ input.input-error, select.input-error { /* Añadir select */
 .balance-status-indicator { font-weight: bold; font-size: 0.9em; padding: 3px 8px; border-radius: 4px; }
 .balance-status-indicator.balanced { color: var(--success-color); background-color: rgba(80, 192, 112, 0.1); border: 1px solid var(--success-color);}
 .balance-status-indicator.unbalanced { color: var(--error-color); background-color: rgba(224, 80, 96, 0.1); border: 1px solid var(--error-color);}
-/* guess-btn eliminado */
 
-/* Estilos de Balanza (Sin cambios) */
+
+/* Estilos de Balanza */
 .scale-container { width: 100%; display: flex; justify-content: center; margin: 20px 0; perspective: 1200px; min-height: 280px; }
 .scale { position: relative; width: clamp(300px, 90%, 550px); height: auto; display: flex; flex-direction: column; align-items: center; }
 .scale-arm { width: 100%; height: 12px; background-image: linear-gradient(to right, #555, #777, #555); border: 1px solid #444; position: relative; display: flex; justify-content: space-between; align-items: center; transform-style: preserve-3d; border-radius: 6px; box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5); top: 60px; transform-origin: center center; }
@@ -332,7 +326,7 @@ input.input-error, select.input-error { /* Añadir select */
 .scale-platform::before { left: 20%; } .scale-platform::after { right: 20%; }
 .scale-base { width: 60%; height: 20px; background-image: linear-gradient(to top, #333, #555); border-radius: 5px 5px 0 0; position: absolute; bottom: -140px; left: 50%; transform: translateX(-50%); box-shadow: 0 2px 5px rgba(0,0,0,0.4); }
 
-/* Materiales en la balanza (SOLO TIPO) */
+/* Materiales en la balanza */
 .material-stack { display: flex; flex-direction: column-reverse; align-items: center; width: 100%; height: 100%; overflow-y: auto; max-height: 100px; padding-top: 5px; gap: 3px; }
 .material-item {
     width: 90%;
@@ -347,7 +341,6 @@ input.input-error, select.input-error { /* Añadir select */
     color: var(--text-primary);
     border: 1px solid;
     cursor: default;
-    /* Usar variable CSS para color */
     background-color: color-mix(in srgb, var(--mineral-color, var(--mineral-desconocido)), transparent 70%);
     border-color: color-mix(in srgb, var(--mineral-color, var(--mineral-desconocido)), #fff 30%);
     border-left: 3px solid var(--mineral-color, var(--mineral-desconocido)); /* Borde izquierdo */
@@ -368,8 +361,8 @@ input.input-error, select.input-error { /* Añadir select */
 #my-turn-indicator i { margin-right: 8px; }
 #waiting-turn-indicator p { color: var(--text-secondary); font-style: italic; }
 
-/* Display Hacker Bytes (Oculto o solo informativo) */
-.player-currency { /* Mantener por si se usa al final */
+/* Display Hacker Bytes (Opcional) */
+.player-currency {
     background-color: rgba(0, 0, 0, 0.2); padding: 10px 15px; margin-bottom: 15px; text-align: center; border: 1px solid var(--border-color); border-radius: var(--border-radius);
 }
 .player-currency h4 { margin: 0; font-size: 1rem; }
@@ -380,9 +373,19 @@ input.input-error, select.input-error { /* Añadir select */
 .phase1-element.hidden, .phase2-element.hidden {
     display: none !important;
 }
+/* Visibilidad animada secciones acción Fase 1 */
+#phase1-guess-one-action {
+    overflow: hidden; opacity: 0; height: 0;
+    transition: opacity 0.3s ease, height 0.3s ease, padding-top 0.3s ease, margin-top 0.3s ease;
+    /* Estilos base cuando está visible (aplicados por JS) */
+    /* padding-top: 15px; margin-top: 25px; border-top: 1px dashed var(--border-color); */
+}
+#phase1-guess-one-action.visible {
+    /* Estilos aplicados por JS en la animación de entrada */
+}
 
 /* Inventario del jugador (Fase 1) */
-#phase1-actions h4 { margin-top: 15px; } /* Espacio antes de "Mis Minerales" */
+#phase1-actions h4 { margin-top: 15px; }
 #my-inventory-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
@@ -414,7 +417,7 @@ input.input-error, select.input-error { /* Añadir select */
     text-align: center;
     position: relative;
     overflow: hidden;
-    border-left: 5px solid var(--mineral-color, var(--mineral-desconocido)); /* Usar variable */
+    border-left: 5px solid var(--mineral-color, var(--mineral-desconocido));
 }
 .inventory-item:not(:disabled):hover {
     background-color: var(--background-tertiary); transform: translateY(-3px) scale(1.03); box-shadow: var(--box-shadow-light); border-color: var(--accent-secondary);
@@ -433,6 +436,59 @@ input.input-error, select.input-error { /* Añadir select */
 .placement-form-group select:focus { outline: none; border-color: var(--accent-secondary); box-shadow: 0 0 0 3px rgba(240, 192, 64, 0.3); }
 .placement-actions { margin-top: 15px; display: flex; gap: 15px; justify-content: center; }
 
+/* NUEVO: Controles Adivinar Uno (Fase 1) */
+#phase1-guess-one-action h4 { margin-top: 0; margin-bottom: 15px; color: var(--accent-secondary); }
+#phase1-guess-one-action h4 i { margin-right: 8px; }
+.guess-one-form {
+    display: flex;
+    flex-wrap: wrap; /* Permitir que pase a la siguiente línea en pantallas pequeñas */
+    align-items: center;
+    gap: 10px; /* Espacio entre elementos */
+    margin-top: 10px;
+    max-width: none; /* Permitir que ocupe el ancho disponible */
+}
+.guess-one-form label {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 0; /* Quitar margen inferior de .form-group label */
+    display: inline-block; /* Alinear con input/select */
+    width: auto; /* Ancho automático */
+}
+.guess-one-form select, .guess-one-form input[type="number"], .guess-one-form button {
+    padding: 8px 12px; /* Más pequeño */
+    font-size: 0.9rem;
+    /* Heredar estilos generales de form-group y btn */
+}
+.guess-one-form select {
+    cursor: pointer;
+    flex-basis: 140px; /* Ancho base */
+    flex-grow: 1; /* Permitir crecer */
+    max-width: 200px; /* Limitar crecimiento */
+}
+.guess-one-form input[type="number"] {
+    max-width: 80px; /* Ancho fijo más pequeño */
+    text-align: center;
+    flex-grow: 0; /* No crecer */
+}
+.guess-one-form button {
+    flex-grow: 0; /* No crecer */
+    margin-left: auto; /* Empujar a la derecha si hay espacio */
+}
+.guess-one-form select:focus, .guess-one-form input[type="number"]:focus {
+    outline: none; border-color: var(--accent-secondary); box-shadow: 0 0 0 3px rgba(240, 192, 64, 0.3);
+}
+/* Estilo para feedback */
+#guess-one-feedback {
+    margin-top: 10px;
+    min-height: 1.2em;
+    font-weight: 500;
+    /* Clases success/error añadidas por JS */
+}
+#guess-one-feedback.success-highlight { color: var(--success-color); font-style: normal;}
+#guess-one-feedback.error-text { color: var(--error-color); font-style: normal;}
+
+
 /* Controles Fase 2 */
 #phase2-actions {
     margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border-color);
@@ -443,13 +499,13 @@ input.input-error, select.input-error { /* Añadir select */
 }
 .guess-single-form label { font-weight: 600; color: var(--text-secondary); font-size: 0.9rem; margin-right: 5px; }
 .guess-single-form select, .guess-single-form input[type="number"] {
-    padding: 8px 12px; background-color: var(--background-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: var(--border-radius); font-size: 0.9rem; /* Más pequeño */
+    padding: 8px 12px; background-color: var(--background-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: var(--border-radius); font-size: 0.9rem;
 }
-.guess-single-form select { cursor: pointer; flex-basis: 150px; flex-grow: 1; } /* Ancho base + crecer */
-.guess-single-form input[type="number"] { max-width: 90px; text-align: center; flex-basis: 90px; flex-grow: 0;} /* Ancho fijo */
-.guess-single-form button { flex-grow: 0; } /* No crecer botón */
+.guess-single-form select { cursor: pointer; flex-basis: 150px; flex-grow: 1; }
+.guess-single-form input[type="number"] { max-width: 90px; text-align: center; flex-basis: 90px; flex-grow: 0;}
+.guess-single-form button { flex-grow: 0; }
 .guess-single-form select:focus, .guess-single-form input[type="number"]:focus { outline: none; border-color: var(--accent-secondary); box-shadow: 0 0 0 3px rgba(240, 192, 64, 0.3); }
-/* Colores en el select */
+/* Colores en el select Fase 2 */
 #guess-single-color-select option.rojo::before,
 #guess-single-color-select option.amarillo::before,
 #guess-single-color-select option.verde::before,
@@ -464,8 +520,8 @@ input.input-error, select.input-error { /* Añadir select */
 #guess-single-color-select option.purpura::before { color: var(--mineral-purpura); }
 
 #single-guess-feedback { margin-top: 10px; min-height: 1.2em; font-weight: 500;}
-#single-guess-feedback.success-highlight { color: var(--success-color); }
-#single-guess-feedback.error-text { color: var(--error-color); }
+#single-guess-feedback.success-highlight { color: var(--success-color); font-style: normal;}
+#single-guess-feedback.error-text { color: var(--error-color); font-style: normal;}
 
 /* Botón Pasar Turno */
 #pass-turn-btn {
@@ -499,7 +555,7 @@ input.input-error, select.input-error { /* Añadir select */
 #game-players-list .player-turn-star { color: var(--accent-primary); margin-left: 5px; animation: pulse-star 1.5s infinite ease-in-out; }
 @keyframes pulse-star { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.2); opacity: 1; } }
 
-/* Ocultar contador de minerales en Fase 2 via JS añadiendo clase al body */
+/* Ocultar contador de minerales en Fase 2 via JS */
 body.guessing-phase-active #game-players-list .player-minerals {
     display: none;
 }
@@ -521,14 +577,14 @@ body.guessing-phase-active #game-players-list .player-minerals {
 #voting-modal .vote-warning strong { color: var(--text-primary); }
 #voting-modal .vote-warning .error-text strong { color: var(--error-color); }
 #vote-status-modal { min-height: 1.5em; font-style: italic; margin-top: 15px; }
-#voting-modal .modal-actions button:disabled { background-color: var(--background-tertiary); border-color: var(--border-color); } /* Estilo específico para botones de voto desactivados */
+#voting-modal .modal-actions button:disabled { background-color: var(--background-tertiary); border-color: var(--border-color); }
 
 /* Pantalla Final */
 #final-results-screen h2 i { margin-right: 10px; }
 #final-results-screen .card { margin-bottom: 25px; }
 .result-summary h3 { margin-bottom: 10px; }
 .result-summary #final-winners { font-size: 1.1rem; font-weight: 600; }
-#final-prize-won { margin-top: 15px; font-size: 1.1rem; } /* Estilo para premio ganado */
+#final-prize-won { margin-top: 15px; font-size: 1.1rem; }
 #final-prize-amount { font-weight: bold; color: var(--success-color); }
 
 .final-weights-reveal h4 { margin-bottom: 15px; }
@@ -565,7 +621,7 @@ body.guessing-phase-active #game-players-list .player-minerals {
 @keyframes shineLogo { 0% { transform: rotate(0deg) translateX(-20%) scale(1.5); } 100% { transform: rotate(360deg) translateX(-20%) scale(1.5); } }
 
 
-/* --- Media Queries (Ajustar si es necesario) --- */
+/* --- Media Queries --- */
 @media (max-width: 992px) {
     .game-main-content { flex-direction: column; }
     .scales-area { order: 1; }
@@ -588,6 +644,11 @@ body.guessing-phase-active #game-players-list .player-minerals {
     /* Ajuste Fase 2 en móvil */
     .guess-single-form { flex-direction: column; align-items: stretch; }
     .guess-single-form input[type="number"] { max-width: none; }
+    /* Ajuste Fase 1 Adivinar Uno en móvil */
+    .guess-one-form { flex-direction: column; align-items: stretch; }
+    .guess-one-form input[type="number"] { max-width: none; }
+    .guess-one-form button { margin-left: 0; margin-top: 10px; width: 100%; } /* Ocupar ancho */
+
     #pass-turn-btn { font-size: 1rem; }
 }
 
@@ -609,71 +670,15 @@ body.guessing-phase-active #game-players-list .player-minerals {
      #voting-modal .vote-warning p { font-size: 0.85rem;}
      #final-actual-weights li { font-size: 1rem; }
 }
-/* public/styles.css */
-/* Añadir al final del archivo existente */
 
-/* --- Estilos para Modal de Adivinanza Fase 1 --- */
-#guess-all-phase1-modal .modal-content {
-    max-width: 650px; /* Un poco más ancho para los inputs */
-}
-
-#guess-all-phase1-modal h4 {
-    color: var(--accent-primary); /* Usar color primario */
-    margin-bottom: 20px;
-    text-align: center;
-}
-#guess-all-phase1-modal h4 i {
-    margin-right: 8px;
-}
-
-.guess-all-inputs-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* 2 o 3 columnas */
-    gap: 15px 20px; /* Espacio entre filas y columnas */
-    margin-bottom: 20px;
-}
-
-.guess-all-inputs-grid .form-group {
-    margin-bottom: 0; /* Quitar margen inferior individual */
-    display: flex;
-    flex-direction: column; /* Label arriba, input abajo */
-    align-items: stretch; /* Ocupar ancho */
-}
-
-.guess-all-inputs-grid .form-group label {
-    width: auto; /* Ancho automático */
-    text-align: left; /* Alinear a la izquierda */
-    margin-bottom: 6px;
-    display: flex; /* Para alinear indicador y texto */
-    align-items: center;
-    gap: 6px;
-}
-
-.guess-all-inputs-grid .form-group input[type="number"] {
-    text-align: center; /* Centrar el número */
-    padding: 10px;
-    font-size: 1.1rem;
-    /* Hereda estilos de input general */
-}
-
-#guess-all-feedback {
-    text-align: center;
-    margin-top: 15px;
-    margin-bottom: 5px;
-    min-height: 1.2em;
-    font-weight: 600;
-}
-
-/* --- Media Query para Grid del Modal --- */
-@media (max-width: 480px) {
-    .guess-all-inputs-grid {
-        grid-template-columns: 1fr; /* Una columna en móviles */
-        gap: 10px;
-    }
-    .guess-all-inputs-grid .form-group input[type="number"] {
-        font-size: 1rem;
-    }
-    #guess-all-phase1-modal .modal-content {
-        padding: 20px 15px;
-    }
-}
+/* --- REMOVED Estilos para Modal de Adivinanza Fase 1 --- */
+/*
+#guess-all-phase1-modal .modal-content { ... }
+#guess-all-phase1-modal h4 { ... }
+.guess-all-inputs-grid { ... }
+.guess-all-inputs-grid .form-group { ... }
+.guess-all-inputs-grid .form-group label { ... }
+.guess-all-inputs-grid .form-group input[type="number"] { ... }
+#guess-all-feedback { ... }
+@media (max-width: 480px) { ... }
+*/

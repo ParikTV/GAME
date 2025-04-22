@@ -35,7 +35,7 @@ const MINERALS_PER_PLAYER_PER_TYPE = 2;
 const MIN_WEIGHT = 1;
 const MAX_WEIGHT = 20;
 const INITIAL_PRIZE_POT = 10000000;
-const PHASE1_PARTIAL_GUESS_REWARD = 1000000; // Premio por acierto parcial en Fase 1
+// const PHASE1_PARTIAL_GUESS_REWARD = 1000000; // REMOVED - Ya no existe la adivinanza parcial
 const PHASE2_REWARD_PER_CORRECT_GUESS = 2000000;
 const PHASE2_TARGET_CORRECT_GUESSES = 3;
 const PHASE2_TOTAL_ROUNDS = 3;
@@ -47,25 +47,26 @@ function generateGameCode() {
     return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// Genera los pesos secretos y la info inicial (Sin cambios requeridos aquí)
+// Genera los pesos secretos y la info inicial
 function generateGameSetup() {
     const weights = {};
     let generatedWeights = [];
     const availableWeights = Array.from({ length: MAX_WEIGHT - MIN_WEIGHT + 1 }, (_, i) => i + MIN_WEIGHT);
 
-    if (!availableWeights.includes(10)) {
-         weights['Amarillo'] = 10;
-    } else {
-         weights['Amarillo'] = 10;
-         availableWeights.splice(availableWeights.indexOf(10), 1);
+    // Asegurar que Amarillo sea 10g
+    weights['Amarillo'] = 10;
+    const yellowIndex = availableWeights.indexOf(10);
+    if (yellowIndex > -1) {
+        availableWeights.splice(yellowIndex, 1);
     }
     generatedWeights.push(10);
 
     const remainingTypes = MINERAL_TYPES.filter(t => t !== 'Amarillo');
     remainingTypes.forEach(type => {
         if (availableWeights.length === 0) {
-             const randomIndex = Math.floor(Math.random() * generatedWeights.length);
-             weights[type] = generatedWeights[randomIndex];
+            // Si no quedan pesos únicos, repetir uno existente (raro con 20 pesos)
+            const randomIndex = Math.floor(Math.random() * generatedWeights.length);
+            weights[type] = generatedWeights[randomIndex];
         } else {
             const randomIndex = Math.floor(Math.random() * availableWeights.length);
             const assignedWeight = availableWeights.splice(randomIndex, 1)[0];
@@ -74,13 +75,20 @@ function generateGameSetup() {
         }
     });
 
+    // Calcular el rango del Amarillo
     const sortedUniqueWeights = [...new Set(Object.values(weights))].sort((a, b) => b - a);
     const rankOfYellow = sortedUniqueWeights.indexOf(10) + 1;
+    const rankSuffix = (rank) => {
+        if (rank === 1) return '1º';
+        if (rank === 2) return '2º';
+        if (rank === 3) return '3º';
+        return `${rank}º`;
+    };
 
     const knownInfo = {
         type: 'Amarillo',
         weight: 10,
-        description: `El mineral Amarillo pesa 10g (es el ${rankOfYellow}º más pesado).`
+        description: `El mineral Amarillo pesa 10g (es el ${rankSuffix(rankOfYellow)} más pesado).`
     };
     console.log("Pesos Secretos Generados:", weights);
     console.log("Info Conocida Inicial:", knownInfo);
@@ -107,8 +115,7 @@ function createPlayerInventory(actualWeights) {
     return inventory;
 }
 
-// Determina el siguiente jugador ACTIVO (REVISADO para nueva lógica)
-// Devuelve el objeto Player completo o null si no hay siguiente.
+// Determina el siguiente jugador ACTIVO
 async function findNextActivePlayer(game) {
     if (!game || !game.players || game.players.length === 0 || !game.status) {
         console.error("findNextActivePlayer: Juego inválido o sin jugadores/estado.");
@@ -116,25 +123,25 @@ async function findNextActivePlayer(game) {
     }
 
     let populatedGame = game;
+    // Poblar si no lo está, seleccionando solo los campos necesarios
     if (!game.populated('players')) {
         try {
-            // Poblar solo jugadores activos con los campos necesarios
             populatedGame = await Game.findById(game._id)
                 .populate({
                     path: 'players',
-                    match: { isActive: true },
-                    select: '_id name turnOrder isActive inventory canPlaceMinerals'
+                    match: { isActive: true }, // Filtrar inactivos en la consulta
+                    select: '_id name turnOrder isActive canPlaceMinerals inventory' // Añadir canPlaceMinerals e inventory si es necesario para alguna lógica futura aquí
                 });
             if (!populatedGame) throw new Error("Juego no encontrado al repopular");
         } catch (err) {
             console.error("findNextActivePlayer ERROR: Falló al repopular jugadores activos:", err);
-            return null;
+            return null; // No se puede continuar sin la lista de jugadores
         }
     }
 
-    // Filtrar los jugadores poblados (que ya deben ser activos)
+    // Usar la lista poblada (que ya debería contener solo activos)
     const activePlayers = populatedGame.players
-        .filter(p => p != null) // Filtrar nulos si populate falló parcialmente
+        .filter(p => p != null) // Filtrar nulos por si acaso
         .sort((a, b) => a.turnOrder - b.turnOrder);
 
     if (activePlayers.length === 0) {
@@ -143,8 +150,7 @@ async function findNextActivePlayer(game) {
     }
 
     const currentPlayerIndex = activePlayers.findIndex(p => p._id.equals(populatedGame.currentPlayerId));
-
-    let searchStartIndex = currentPlayerIndex === -1 ? -1 : currentPlayerIndex;
+    let searchStartIndex = (currentPlayerIndex === -1) ? -1 : currentPlayerIndex; // Si no hay jugador actual (inicio juego?), empezar búsqueda desde el "principio" lógico (-1 + 1 = 0)
 
     let attempts = 0;
     let nextPlayerIndex = searchStartIndex;
@@ -153,30 +159,19 @@ async function findNextActivePlayer(game) {
         nextPlayerIndex = (nextPlayerIndex + 1) % activePlayers.length;
         const nextPlayer = activePlayers[nextPlayerIndex];
 
-        // Condición para poder jugar varía según la fase:
-        let canPlayNext = false;
-        if (populatedGame.status === 'playing') {
-             // En Fase 1 puede jugar si está activo (puede pasar o intentar adivinar todo)
-             canPlayNext = true; // La validación de si PUEDE colocar se hace en 'placeMinerals'
-             // console.log(`findNextActivePlayer (playing): Verificando ${nextPlayer.name}. Está activo.`);
-        } else if (populatedGame.status === 'guessing_phase') {
-             // Solo necesita estar activo
-             canPlayNext = true; // Ya filtramos por activos
-             // console.log(`findNextActivePlayer (guessing_phase): Verificando ${nextPlayer.name}. Está activo.`);
-        }
-
-        if (canPlayNext) {
+        // En Fase 1 y Fase 2, cualquier jugador activo puede tener turno.
+        // La capacidad de realizar acciones específicas (colocar, adivinar) se valida en los handlers correspondientes.
+        if (populatedGame.status === 'playing' || populatedGame.status === 'guessing_phase') {
              console.log(`findNextActivePlayer: Siguiente turno para ${nextPlayer.name} (Turno ${nextPlayer.turnOrder})`);
-             // Devolver el jugador encontrado (ya está poblado con lo necesario)
-             return nextPlayer;
+             return nextPlayer; // Devolver el jugador encontrado
         }
 
         attempts++;
-        // Evitar bucle infinito si nadie puede jugar
+        // Evitar bucle infinito si se dió la vuelta completa (aunque no debería pasar con la lógica actual)
         if (currentPlayerIndex !== -1 && nextPlayerIndex === currentPlayerIndex) break;
     }
 
-    console.log("findNextActivePlayer: No se encontró un siguiente jugador activo que cumpla las condiciones.");
+    console.log("findNextActivePlayer: No se encontró un siguiente jugador activo (¿estado de juego incorrecto o error lógico?).");
     return null;
 }
 
@@ -184,11 +179,10 @@ async function findNextActivePlayer(game) {
 // Construye el objeto gameState para enviar a UN jugador específico (ACTUALIZADO)
 async function getGameStateForPlayer(gameId, playerId) {
     try {
-        // Poblar más campos si son necesarios para la lógica del cliente
         const game = await Game.findById(gameId)
             .populate('currentPlayerId', 'name turnOrder _id')
             .populate('successfulGuesser', 'name _id')
-            .populate('balancerPlayerId', 'name _id'); // Poblar quién balanceó
+            .populate('balancerPlayerId', 'name _id');
 
         // Obtener todos los jugadores de una vez con los campos necesarios
         const playersInGame = await Player.find({ gameId: gameId }).select(
@@ -207,7 +201,7 @@ async function getGameStateForPlayer(gameId, playerId) {
         }
 
         const isPlayerTurn = !!game.currentPlayerId && game.currentPlayerId._id.equals(player._id);
-        const mainScaleBalanced = game.isMainScaleBalanced(); // Usar el método actualizado
+        const mainScaleBalanced = game.isMainScaleBalanced();
 
         // Crear la información pública (sin pesos de inventario)
         const playersPublicInfo = playersInGame.map(p => ({
@@ -216,9 +210,8 @@ async function getGameStateForPlayer(gameId, playerId) {
              turnOrder: p.turnOrder,
              mineralCount: p.inventory?.length ?? 0,
              isActive: p.isActive,
-             canPlaceMinerals: p.canPlaceMinerals, // Indica si tiene >= 2 minerales
-             // Añadir info relevante para UI si es necesario (ej: ¿ya votó?)
-             hasVoted: game.status === 'voting' && game.votingState?.votes?.get(p._id.toString()) !== null
+             canPlaceMinerals: p.canPlaceMinerals,
+             hasVoted: game.status === 'voting' && game.votingState?.votes?.has(p._id.toString()) && game.votingState.votes.get(p._id.toString()) !== null
         }));
 
         // Construir estado de votación para el cliente
@@ -228,18 +221,21 @@ async function getGameStateForPlayer(gameId, playerId) {
                 requiredVotes: game.votingState.requiredVotes,
                 receivedVotes: game.votingState.receivedVotes,
                 myVote: game.votingState.votes.get(player._id.toString()), // null, 'yes', 'no'
-                // No enviar el mapa completo de votos al cliente
             };
         }
+
+        // Convertir Map a Objeto para enviar al cliente
+        const phase1GuessedWeightsObject = game.phase1CorrectlyGuessedWeights
+            ? Object.fromEntries(game.phase1CorrectlyGuessedWeights)
+            : {};
 
         const gameStateToSend = {
             gameId: game._id,
             gameCode: game.gameCode,
-            hostId: game.hostId, // Necesario para saber quién empieza Fase 2
+            hostId: game.hostId,
             status: game.status,
             isMainScaleBalanced: mainScaleBalanced,
             knownMineralInfo: game.knownMineralInfo,
-            // Filtrar pesos de los materiales en las balanzas antes de enviar
             mainScale: {
                 leftWeight: game.mainScale.leftWeight || 0,
                 rightWeight: game.mainScale.rightWeight || 0,
@@ -260,20 +256,20 @@ async function getGameStateForPlayer(gameId, playerId) {
             myPlayerId: player._id,
             myInventory: player.inventory ? player.inventory.map(({ instanceId, type }) => ({ instanceId, type })) : [],
             myHackerBytes: player.hackerBytes,
-            iCanPlaceMinerals: player.canPlaceMinerals, // Estado general
+            iCanPlaceMinerals: player.canPlaceMinerals,
             myPhase2AttemptsLeft: player.phase2GuessAttemptsThisTurn,
             myGuessedColorsPhase2: player.guessedColorsPhase2,
+            // NUEVO: Enviar pesos correctamente adivinados en Fase 1
+            phase1CorrectlyGuessedWeights: phase1GuessedWeightsObject,
 
             // Info global del juego
             playersPublicInfo: playersPublicInfo,
             currentPrizePot: game.currentPrizePot,
             balancerPlayer: game.balancerPlayerId ? { id: game.balancerPlayerId._id, name: game.balancerPlayerId.name } : null,
-            votingState: clientVotingState, // Estado de votación filtrado
+            votingState: clientVotingState,
             phase2RoundsPlayed: game.phase2RoundsPlayed,
             phase2CorrectGuessesTotal: game.phase2CorrectGuessesTotal,
-            // No enviar phase2CorrectGuessesMap al cliente directamente, es info interna
             successfulGuesser: game.successfulGuesser ? { id: game.successfulGuesser._id, name: game.successfulGuesser.name } : null,
-
         };
 
         return gameStateToSend;
@@ -283,6 +279,7 @@ async function getGameStateForPlayer(gameId, playerId) {
         return null;
     }
 }
+
 
 // Emite el estado actualizado a todos los jugadores ACTIVOS en la sala
 async function broadcastGameState(gameId, gameCode) {
@@ -295,7 +292,6 @@ async function broadcastGameState(gameId, gameCode) {
     console.log(`Broadcasting state for game ${gameCode}, status: ${game.status}. CurrentPlayerId: ${game.currentPlayerId}`);
 
     for (const playerRef of game.players) {
-        // Enviar solo a jugadores activos y con socketId
         if (playerRef && playerRef.isActive && playerRef.socketId) {
             const gameState = await getGameStateForPlayer(gameId, playerRef._id);
             if (gameState) {
@@ -307,69 +303,70 @@ async function broadcastGameState(gameId, gameCode) {
     }
 }
 
-// Emite el evento de fin de juego a todos (ACTUALIZADO para manejar nuevos estados)
+// Emite el evento de fin de juego a todos (ACTUALIZADO para quitar phase1_guess_win)
 async function broadcastGameOver(game) {
     console.log(`Broadcasting GAME OVER for game ${game.gameCode}, status: ${game.status}`);
-    // Poblar lo necesario para mostrar el resultado final
     const populatedGame = await Game.findById(game._id)
-                                    .populate('players', 'socketId _id isActive name') // Necesitamos nombres para mostrar
-                                    .populate('successfulGuesser', '_id name')
+                                    .populate('players', 'socketId _id isActive name')
+                                    .populate('successfulGuesser', '_id name') // Usado solo por balance_win (o futuros estados)
                                     .populate('balancerPlayerId', '_id name');
     if (!populatedGame) {
          console.error(`broadcastGameOver ERROR: Juego ${game._id} no encontrado para transmitir fin.`);
          return;
     }
 
-    // Asignar premios si es necesario ANTES de enviar estado final
     let finalPrizePerPlayer = 0;
-    if (populatedGame.status === 'finished_balance_win'
-        || populatedGame.status === 'finished_phase1_guess_win'
-        || populatedGame.status === 'finished_phase2_win')
-    {
-        let playersToReward = [];
-        if (populatedGame.status === 'finished_phase1_guess_win') {
-            // Solo gana el jugador que adivinó todo
-            const winner = populatedGame.players.find(p => p._id.equals(populatedGame.successfulGuesser?._id));
-            if (winner && winner.isActive) { // Asegurarse que sigue activo
-                playersToReward.push(winner);
-            }
-        } else {
-            // Para balance_win y phase2_win, ganan todos los activos al final
-            playersToReward = populatedGame.players.filter(p => p.isActive);
-        }
+    let playersToReward = [];
 
-        if (playersToReward.length > 0) {
-            finalPrizePerPlayer = Math.floor(populatedGame.currentPrizePot / playersToReward.length);
-            console.log(`Repartiendo ${populatedGame.currentPrizePot} entre ${playersToReward.length} jugador(es). ${finalPrizePerPlayer} c/u.`);
-            // Actualizar DB (mejor si se hace en una transacción)
-            for (const player of playersToReward) {
-                try {
-                    await Player.findByIdAndUpdate(player._id, { $inc: { hackerBytes: finalPrizePerPlayer } });
-                } catch (updateError) {
-                    console.error(`Error actualizando premio para jugador ${player._id}:`, updateError);
-                }
+    // Determinar quién gana basado en el estado final
+    if (populatedGame.status === 'finished_balance_win' || populatedGame.status === 'finished_phase2_win') {
+        // Gana el equipo activo
+        playersToReward = populatedGame.players.filter(p => p.isActive);
+    }
+    // else if (populatedGame.status === 'finished_phase1_guess_win') {
+        // // Gana solo el successfulGuesser
+        // const winner = populatedGame.players.find(p => p._id.equals(populatedGame.successfulGuesser?._id));
+        // if (winner && winner.isActive) {
+        //     playersToReward.push(winner);
+        // }
+    // } // REMOVED finished_phase1_guess_win
+
+    // Repartir premio si hay ganadores
+    if (playersToReward.length > 0) {
+        finalPrizePerPlayer = Math.floor(populatedGame.currentPrizePot / playersToReward.length);
+        console.log(`Repartiendo ${populatedGame.currentPrizePot} entre ${playersToReward.length} jugador(es). ${finalPrizePerPlayer} c/u.`);
+        for (const player of playersToReward) {
+            try {
+                // Usar $inc para añadir al premio existente (aunque debería ser 0 al inicio)
+                await Player.findByIdAndUpdate(player._id, { $inc: { hackerBytes: finalPrizePerPlayer } });
+            } catch (updateError) {
+                console.error(`Error actualizando premio para jugador ${player._id}:`, updateError);
             }
-        } else {
-             console.log("Nadie activo al final (o ganador desconectó), premio se pierde.");
-             populatedGame.currentPrizePot = 0; // Asegurar que el premio es 0 si nadie queda
         }
     } else {
-         // Si es phase2_loss o disconnect, el premio es 0.
+         console.log("Nadie activo al final (o ganador desconectó), premio se pierde.");
+         // Asegurar que el premio del juego sea 0 si no se repartió
          populatedGame.currentPrizePot = 0;
+         if (populatedGame.status !== 'finished_failure') { // Solo si no terminó por otra causa
+             await populatedGame.save(); // Guardar el premio 0 en el juego
+         }
     }
-     // Si el estado del juego ya refleja una pérdida, asegurar que el premio sea 0
-     if (populatedGame.status === 'finished_phase2_loss' || populatedGame.status === 'finished_disconnect_vote' || populatedGame.status === 'finished_disconnect_game' || populatedGame.status === 'finished_failure') {
+
+     // Si el estado del juego implica una pérdida directa, asegurar que el premio sea 0.
+     if (['finished_phase2_loss', 'finished_disconnect_vote', 'finished_disconnect_game', 'finished_failure'].includes(populatedGame.status)) {
          populatedGame.currentPrizePot = 0;
+         // Podríamos guardar aquí también, pero getGameStateForPlayer lo reflejará
      }
 
 
      // Ahora, obtener el estado final DESPUÉS de actualizar premios si aplica
      for (const playerRef of populatedGame.players) {
-        if (playerRef.socketId) { // Enviar a todos, incluso inactivos, para que vean el final
-            // Necesitamos obtener el estado individual actualizado con el premio si lo hubo
+        if (playerRef.socketId) { // Enviar a todos, incluso inactivos
              try {
-                 const finalPlayerState = await Player.findById(playerRef._id); // Volver a leer estado del jugador
+                 // Volver a leer estado del jugador para asegurar que el premio está actualizado
+                 const finalPlayerState = await Player.findById(playerRef._id);
                  const finalGameState = await getGameStateForPlayer(populatedGame._id, playerRef._id); // Construir estado final
+
                  if (finalGameState && finalPlayerState) {
                       // Asegurarse que los hackerBytes reflejen el premio recién asignado
                       finalGameState.myHackerBytes = finalPlayerState.hackerBytes;
@@ -393,54 +390,44 @@ async function broadcastGameOver(game) {
 io.on('connection', (socket) => {
     console.log(`Cliente conectado: ${socket.id}`);
 
-    // Crear Juego (CORREGIDO)
+    // Crear Juego
     socket.on('createGame', async ({ hostName }, callback) => {
         try {
             const gameCode = generateGameCode();
             const { weights, knownInfo } = generateGameSetup();
 
-            // 1. Crear instancia de Host (SIN guardarlo aún)
             const host = new Player({
                 socketId: socket.id,
                 name: hostName,
                 turnOrder: 1,
                 inventory: createPlayerInventory(weights),
-                hackerBytes: 0 // Inicia en 0
-                // gameId se asignará DESPUÉS de crear el juego
+                hackerBytes: 0
             });
 
-            // 2. Crear instancia de Game, referenciando el _id del host (Mongoose genera _id al crear instancia)
             const game = new Game({
                 gameCode,
-                hostId: host._id, // Usar ID generado por Mongoose para el host
-                players: [host._id], // Añadir referencia al host
+                hostId: host._id,
+                players: [host._id],
                 actualMineralWeights: weights,
                 knownMineralInfo: knownInfo,
                 mainScale: { leftMaterials: [], rightMaterials: [], leftWeight: 0, rightWeight: 0 },
                 secondaryScale: { leftMaterials: [], rightMaterials: [], leftWeight: 0, rightWeight: 0 },
                 votingState: { votes: new Map(), requiredVotes: 0, receivedVotes: 0 },
+                phase1CorrectlyGuessedWeights: new Map(), // Inicializar mapa vacío
                 phase2CorrectGuessesMap: new Map(),
                 status: 'waiting',
                 currentPrizePot: INITIAL_PRIZE_POT
             });
 
-            // 3. Guardar el Juego PRIMERO para obtener su _id
             await game.save();
-
-            // 4. Asignar el game._id al Host
             host.gameId = game._id;
-
-            // 5. Ahora SÍ guardar el Host
             await host.save();
 
-            // 6. Unir socket a la sala y continuar
             socket.join(gameCode);
             console.log(`Juego ${gameCode} creado por Host ${hostName} (${host._id}). Host unido a la sala.`);
 
-            // Enviar callback
             callback({ success: true, gameId: game._id, playerId: host._id, gameCode });
 
-            // Enviar estado inicial al host
             const hostGameState = await getGameStateForPlayer(game._id, host._id);
             if (hostGameState) {
                 socket.emit('gameStateUpdated', { gameState: hostGameState });
@@ -449,12 +436,10 @@ io.on('connection', (socket) => {
             }
 
         } catch (error) {
-            // El error original ('Player validation failed...') ya no debería ocurrir aquí
             console.error("Error detallado creando juego:", error);
             let errorMessage = "Error interno al crear el juego.";
              if (error.name === 'ValidationError') errorMessage = `Error de validación: ${error.message}`;
              else if (error.code === 11000) errorMessage = "Error al generar código único, intenta de nuevo.";
-            // Intentar limpiar si algo se creó parcialmente? (Complejo)
             callback({ success: false, message: errorMessage });
         }
     });
@@ -470,14 +455,13 @@ io.on('connection', (socket) => {
             if (nameExists) return callback({ success: false, message: "Ese nombre ya está en uso." });
 
             const turnOrder = game.players.length + 1;
-            // Jugador inicia SIN HackerBytes
             const player = new Player({
                 socketId: socket.id,
                 name: playerName,
                 gameId: game._id,
                 turnOrder: turnOrder,
                 inventory: createPlayerInventory(game.actualMineralWeights),
-                hackerBytes: 0 // Inicia en 0
+                hackerBytes: 0
             });
             await player.save();
 
@@ -516,20 +500,12 @@ io.on('connection', (socket) => {
     // Iniciar Juego (Host)
     socket.on('startGame', async ({ gameId }) => {
          try {
-            const game = await Game.findById(gameId).populate('players', '_id turnOrder isActive'); // Poblar para encontrar primero
+            const game = await Game.findById(gameId).populate('players', '_id turnOrder isActive socketId'); // Poblar socketId para validación
             if (!game) return socket.emit('error', { message: "Juego no encontrado." });
 
-            // Asegurar que quien pide iniciar es el host registrado en el juego
-            if (!game.hostId || socket.id !== (await Player.findById(game.hostId))?.socketId) {
-                // Buscar el jugador por socket id para enviar el error
-                 const playerRequesting = await Player.findOne({socketId: socket.id, gameId: gameId});
-                 if (playerRequesting) {
-                     return socket.emit('error', { message: "Solo el host puede iniciar." });
-                 } else {
-                     // Si no encontramos al jugador, simplemente logueamos
-                     console.warn(`Intento de iniciar juego ${game.gameCode} por socket ${socket.id} no reconocido como host.`);
-                     return;
-                 }
+            const hostPlayer = game.players.find(p => p._id.equals(game.hostId));
+            if (!hostPlayer || hostPlayer.socketId !== socket.id) {
+                return socket.emit('error', { message: "Solo el host puede iniciar." });
             }
 
             if (game.status !== 'waiting') return socket.emit('error', { message: `El juego ya está ${game.status}.` });
@@ -539,7 +515,6 @@ io.on('connection', (socket) => {
                   return socket.emit('error', { message: "Se necesitan al menos 2 jugadores activos." });
              }
 
-            // Encontrar al primer jugador por turnOrder (usualmente el host)
             const firstPlayer = activePlayers.sort((a, b) => a.turnOrder - b.turnOrder)[0];
             if (!firstPlayer) {
                 console.error(`startGame CRITICAL ERROR: ¡No se encontró primer jugador activo! gameId: ${game._id}.`);
@@ -549,14 +524,15 @@ io.on('connection', (socket) => {
             game.status = 'playing';
             game.currentTurnOrder = firstPlayer.turnOrder;
             game.currentPlayerId = firstPlayer._id;
-            // Limpiar estados de fases anteriores si se re-inicia
+            // Resetear estados de juego anteriores
             game.balancerPlayerId = null;
             game.votingState = { votes: new Map(), requiredVotes: 0, receivedVotes: 0 };
+            game.phase1CorrectlyGuessedWeights = new Map(); // Resetear mapa de Fase 1
             game.phase2RoundsPlayed = 0;
             game.phase2CorrectGuessesTotal = 0;
             game.phase2CorrectGuessesMap = new Map();
             game.successfulGuesser = null;
-            game.currentPrizePot = INITIAL_PRIZE_POT; // Resetear premio al iniciar
+            game.currentPrizePot = INITIAL_PRIZE_POT;
 
             await game.save();
             console.log(`startGame: Juego ${game.gameCode} iniciado. Turno para Jugador ${firstPlayer.turnOrder}.`);
@@ -568,32 +544,28 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Colocar Minerales (MODIFICADO para nueva regla y votación)
+    // Colocar Minerales
     socket.on('placeMinerals', async ({ gameId, playerId, placements }) => {
          try {
             const game = await Game.findById(gameId);
-            const player = await Player.findById(playerId).select('+inventory'); // Cargar inventario
+            const player = await Player.findById(playerId).select('+inventory');
 
             if (!game || !player) return socket.emit('error', { message: "Juego o jugador no encontrado." });
             if (game.status !== 'playing') return socket.emit('error', { message: "El juego no está en fase de colocación." });
             if (!game.currentPlayerId?.equals(player._id)) return socket.emit('error', { message: "No es tu turno." });
 
-             // Recalcular canPlaceMinerals por si acaso
              player.canPlaceMinerals = player.isActive && player.inventory && player.inventory.length >= 2;
             if (!player.canPlaceMinerals) return socket.emit('error', { message: "No tienes suficientes minerales." });
 
-            // --- NUEVA VALIDACIÓN: Cantidad Par y Mínimo 2 ---
             if (!Array.isArray(placements) || placements.length < 2 || placements.length % 2 !== 0) {
                 console.warn(`placeMinerals (${player.name}): Intento de colocar cantidad inválida (${placements?.length || 0}).`);
                 return socket.emit('error', { message: 'Debes colocar una cantidad par de minerales (2, 4, 6...).' });
             }
-            // --- FIN NUEVA VALIDACIÓN ---
 
-            const currentInventory = [...player.inventory]; // Copia para operar
-            const mineralsToPlaceDetails = []; // Guardar { mineral, placement }
+            const currentInventory = [...player.inventory];
+            const mineralsToPlaceDetails = [];
             const placedInstanceIds = new Set();
 
-            // 1. Validar y extraer minerales del inventario
             for (const placement of placements) {
                 if (!placement || !placement.mineralInstanceId || !placement.targetScale || !placement.targetSide) {
                     throw new Error("Datos de colocación inválidos recibidos.");
@@ -607,15 +579,13 @@ io.on('connection', (socket) => {
                     throw new Error(`Mineral ${placement.mineralInstanceId} no encontrado en tu inventario.`);
                 }
 
-                const mineral = currentInventory.splice(mineralIndex, 1)[0]; // Quitar del inventario temporal
+                const mineral = currentInventory.splice(mineralIndex, 1)[0];
                 mineralsToPlaceDetails.push({ mineral, placement });
                 placedInstanceIds.add(placement.mineralInstanceId);
             }
 
-             // 2. Actualizar balanzas en el objeto Game
              mineralsToPlaceDetails.forEach(({ mineral, placement }) => {
                  const scale = placement.targetScale === 'main' ? game.mainScale : game.secondaryScale;
-                 // Asegurar que las propiedades existan
                  scale.leftMaterials = scale.leftMaterials || [];
                  scale.rightMaterials = scale.rightMaterials || [];
                  scale.leftWeight = scale.leftWeight || 0;
@@ -624,25 +594,21 @@ io.on('connection', (socket) => {
                  const sideArray = placement.targetSide === 'left' ? scale.leftMaterials : scale.rightMaterials;
                  const weightProp = placement.targetSide === 'left' ? 'leftWeight' : 'rightWeight';
 
-                 sideArray.push(mineral); // Guardar objeto completo con peso
+                 sideArray.push(mineral);
                  scale[weightProp] += mineral.weight;
              });
 
             game.markModified('mainScale');
             game.markModified('secondaryScale');
 
-            // 3. Actualizar inventario real del jugador
             player.inventory = currentInventory;
-            // El hook pre-save actualizará canPlaceMinerals
-            await player.save();
+            await player.save(); // Hook pre-save actualiza canPlaceMinerals
 
-            // 4. Comprobar si la balanza principal está equilibrada
             if (game.isMainScaleBalanced()) {
-                // --- INICIAR FASE DE VOTACIÓN ---
                 console.log(`¡Balanza equilibrada por ${player.name} en ${game.gameCode}! Iniciando votación.`);
                 game.status = 'voting';
                 game.balancerPlayerId = player._id;
-                game.currentPrizePot = INITIAL_PRIZE_POT; // Establecer premio en riesgo
+                game.currentPrizePot = INITIAL_PRIZE_POT;
 
                 const activePlayers = await Player.find({ gameId: game._id, isActive: true });
                 game.votingState = {
@@ -650,20 +616,18 @@ io.on('connection', (socket) => {
                     requiredVotes: activePlayers.length,
                     receivedVotes: 0
                 };
-                game.markModified('votingState'); // Necesario para Maps
+                game.markModified('votingState');
 
                 await game.save();
-                await broadcastGameState(game._id, game.gameCode); // Notificar a todos que se inicia votación
+                await broadcastGameState(game._id, game.gameCode);
 
             } else {
-                // --- CONTINUAR FASE 1: PASAR TURNO ---
-                await advanceTurn(game, io); // Llama a la función helper
+                await advanceTurn(game, io);
             }
 
         } catch (error) {
             console.error(`Error en placeMinerals para jugador ${playerId}:`, error);
             socket.emit('error', { message: `Error al colocar minerales: ${error.message || 'Error desconocido.'}` });
-             // Reintentar broadcast del estado actual si falla
              try {
                  const currentState = await getGameStateForPlayer(gameId, playerId);
                  if (currentState) socket.emit('gameStateUpdated', { gameState: currentState });
@@ -671,84 +635,87 @@ io.on('connection', (socket) => {
         }
     });
 
-    // NUEVO: Adivinar Todos los Pesos en Fase 1
-    socket.on('guessAllWeightsPhase1', async ({ gameId, playerId, guesses }) => {
+    // -------------------------------------------------------------------------
+    // REMOVED socket.on('guessAllWeightsPhase1', ...)
+    // -------------------------------------------------------------------------
+
+    // NUEVO: Adivinar Peso Individual en Fase 1
+    socket.on('guessSingleWeightPhase1', async ({ gameId, playerId, guessedColor, guessedWeight }) => {
         try {
             const game = await Game.findById(gameId);
             const player = await Player.findById(playerId);
 
-            // Validaciones
+            // --- Validaciones Fase 1 (Nueva Acción) ---
             if (!game || !player || !player.isActive) return socket.emit('error', { message: "Juego o jugador inválido." });
-            if (game.status !== 'playing') return socket.emit('error', { message: "Solo puedes adivinar todo en la Fase 1." });
+            if (game.status !== 'playing') return socket.emit('error', { message: "Solo puedes adivinar pesos durante la Fase 1." });
             if (!game.currentPlayerId?.equals(player._id)) return socket.emit('error', { message: "No es tu turno." });
-            if (!guesses || typeof guesses !== 'object') return socket.emit('error', { message: "Formato de adivinanza inválido." });
+            if (!MINERAL_TYPES.includes(guessedColor)) return socket.emit('error', { message: "Color de mineral inválido." });
+            if (guessedColor === 'Amarillo') return socket.emit('error', { message: "No puedes adivinar el peso del mineral Amarillo (ya es conocido)." });
 
-            console.log(`${player.name} intenta adivinar TODOS los pesos en ${game.gameCode}`);
-
-            let correctGuessesCount = 0;
-            let allTypesPresent = true;
-            const actualWeights = game.actualMineralWeights;
-
-            // Validar y contar aciertos
-            for (const type of MINERAL_TYPES) {
-                if (!guesses.hasOwnProperty(type)) {
-                    allTypesPresent = false;
-                    break; // Falta un tipo, no es válido
-                }
-                const guessNum = parseInt(guesses[type]);
-                if (isNaN(guessNum) || guessNum < MIN_WEIGHT || guessNum > MAX_WEIGHT) {
-                     return socket.emit('error', { message: `Peso inválido para ${type} (${MIN_WEIGHT}-${MAX_WEIGHT}).` });
-                }
-                if (guessNum === actualWeights[type]) {
-                    correctGuessesCount++;
-                }
+            const guessNum = parseInt(guessedWeight);
+            if (isNaN(guessNum) || guessNum < MIN_WEIGHT || guessNum > MAX_WEIGHT) {
+                 return socket.emit('error', { message: `El peso adivinado debe ser un número entre ${MIN_WEIGHT} y ${MAX_WEIGHT}.` });
             }
 
-            if (!allTypesPresent) {
-                 return socket.emit('error', { message: "Debes adivinar el peso de los 5 tipos de minerales." });
+            // Verificar si ya fue adivinado correctamente en esta fase
+            if (game.phase1CorrectlyGuessedWeights?.has(guessedColor)) {
+                 return socket.emit('error', { message: `El peso de ${guessedColor} ya fue adivinado correctamente en esta fase.` });
             }
+            // --- Fin Validaciones ---
 
-            // Procesar resultado
-            if (correctGuessesCount === 5) {
-                // --- ¡VICTORIA INSTANTÁNEA! ---
-                console.log(`¡VICTORIA! ${player.name} adivinó TODOS los pesos en Fase 1.`);
-                const totalPrize = game.currentPrizePot; // Gana el bote actual
-                player.hackerBytes += totalPrize;
+            console.log(`Fase 1: ${player.name} intenta adivinar ${guessedColor} = ${guessNum}`);
 
-                game.status = 'finished_phase1_guess_win';
-                game.successfulGuesser = player._id;
-                // game.currentPrizePot se mantiene como el premio ganado por el jugador
+            const actualWeight = game.actualMineralWeights[guessedColor];
 
-                await player.save();
+            if (guessNum === actualWeight) {
+                // --- ¡Acierto en Fase 1! ---
+                console.log(`Fase 1: ¡Correcto! ${player.name} adivinó ${guessedColor}.`);
+
+                // Inicializar el mapa si no existe
+                if (!game.phase1CorrectlyGuessedWeights) {
+                     game.phase1CorrectlyGuessedWeights = new Map();
+                }
+                game.phase1CorrectlyGuessedWeights.set(guessedColor, actualWeight);
+                game.markModified('phase1CorrectlyGuessedWeights'); // MUY IMPORTANTE para Mapas
                 await game.save();
-                await broadcastGameOver(game); // Notificar fin de juego
 
-            } else {
-                // --- ACIERTOS PARCIALES O NINGUNO ---
-                console.log(`${player.name} adivinó ${correctGuessesCount}/5 pesos. Gana premio parcial.`);
-                const partialPrize = correctGuessesCount * PHASE1_PARTIAL_GUESS_REWARD;
-                if (partialPrize > 0) {
-                    player.hackerBytes += partialPrize;
-                    await player.save();
-                }
-
-                // Notificar al jugador el resultado parcial
-                socket.emit('phase1GuessResult', {
-                    correctCount: correctGuessesCount,
-                    prizeWon: partialPrize
+                // Enviar resultado SÓLO al jugador que adivinó
+                socket.emit('singleGuessPhase1Result', {
+                    success: true,
+                    color: guessedColor,
+                    weight: actualWeight,
+                    message: `¡Correcto! El mineral ${guessedColor} pesa ${actualWeight}g.`
                 });
 
-                // Pasar el turno
-                await advanceTurn(game, io);
+                // Transmitir estado a TODOS para actualizar la UI con los pesos revelados
+                await broadcastGameState(game._id, game.gameCode);
+
+            } else {
+                // --- Fallo en Fase 1 ---
+                console.log(`Fase 1: Incorrecto. ${player.name} falló ${guessedColor}.`);
+
+                // Enviar resultado SÓLO al jugador que falló
+                socket.emit('singleGuessPhase1Result', {
+                    success: false,
+                    color: guessedColor,
+                    message: `Incorrecto. El mineral ${guessedColor} no pesa ${guessNum}g.`
+                });
+
+                // NO se guarda el juego, NO se transmite estado (nada cambió globalmente)
             }
 
+             // IMPORTANTE: El turno NO avanza después de esta adivinanza. El jugador puede seguir colocando o pasar.
+
         } catch (error) {
-             console.error(`Error en guessAllWeightsPhase1 para jugador ${playerId}:`, error);
-             socket.emit('error', { message: `Error al procesar la adivinanza: ${error.message || 'Error desconocido.'}` });
-             // Reintentar broadcast del estado actual si falla
+             console.error(`Error en guessSingleWeightPhase1 para jugador ${playerId}:`, error);
+             socket.emit('error', { message: `Error al procesar adivinanza Fase 1: ${error.message || 'Error desconocido.'}` });
+             // Reintentar broadcast del estado actual si falla y el jugador sigue conectado
              try {
-                  const currentState = await getGameStateForPlayer(gameId, playerId);
-                  if (currentState) socket.emit('gameStateUpdated', { gameState: currentState });
+                  const playerStillConnected = await Player.findById(playerId).select('socketId');
+                  if(playerStillConnected?.socketId) {
+                     const currentState = await getGameStateForPlayer(gameId, playerId);
+                     if (currentState) io.to(playerStillConnected.socketId).emit('gameStateUpdated', { gameState: currentState });
+                  }
              } catch (e) { console.error("Error retransmitiendo estado tras fallo:", e); }
         }
     });
@@ -757,8 +724,8 @@ io.on('connection', (socket) => {
     // Votar para Fase 2
     socket.on('castVote', async ({ gameId, playerId, vote }) => {
         try {
-            const game = await Game.findById(gameId).populate('players', '_id isActive turnOrder name'); // Poblar para contar activos, turnos y nombre
-            const player = game.players.find(p => p._id.equals(playerId)); // Buscar en la lista poblada
+            const game = await Game.findById(gameId).populate('players', '_id isActive turnOrder name');
+            const player = game.players.find(p => p._id.equals(playerId));
 
             if (!game || !player || !player.isActive) return socket.emit('error', { message: "Juego o jugador inválido." });
             if (game.status !== 'voting') return socket.emit('error', { message: "No es la fase de votación." });
@@ -775,20 +742,17 @@ io.on('connection', (socket) => {
             game.votingState.receivedVotes += 1;
             game.markModified('votingState');
 
-            // Notificar a todos que alguien votó (para UI)
             io.to(game.gameCode).emit('voteReceived', { playerId: playerId, playerName: player.name });
 
-            // Recalcular activos (usar la lista ya poblada)
             const currentActivePlayers = game.players.filter(p => p.isActive);
             const requiredNow = currentActivePlayers.length;
-            game.votingState.requiredVotes = requiredNow; // Actualizar por si acaso
+            game.votingState.requiredVotes = requiredNow;
 
             if (game.votingState.receivedVotes >= requiredNow && requiredNow > 0) {
                 console.log(`Todos (${requiredNow}) los activos han votado en ${game.gameCode}. Contando...`);
                 let yesVotes = 0;
                 let noVotes = 0;
 
-                // Usar currentActivePlayers para el conteo final
                 currentActivePlayers.forEach(p => {
                      const playerVote = game.votingState.votes.get(p._id.toString());
                      if (playerVote === 'yes') yesVotes++;
@@ -802,24 +766,20 @@ io.on('connection', (socket) => {
                     game.status = 'guessing_phase';
                     game.phase2RoundsPlayed = 0;
                     game.phase2CorrectGuessesTotal = 0;
-                    game.phase2CorrectGuessesMap = new Map(); // Limpiar mapa
+                    game.phase2CorrectGuessesMap = new Map();
 
-                    // Encontrar al Host original para darle el primer turno de Fase 2
                     let firstTurnPlayer = currentActivePlayers.find(p => p._id.equals(game.hostId));
-
-                    if (!firstTurnPlayer) { // Si el host está inactivo
+                    if (!firstTurnPlayer) {
                          firstTurnPlayer = currentActivePlayers.sort((a, b) => a.turnOrder - b.turnOrder)[0];
                     }
 
                     if (firstTurnPlayer) {
                          game.currentPlayerId = firstTurnPlayer._id;
                          game.currentTurnOrder = firstTurnPlayer.turnOrder;
-                         // Asignar intentos al jugador inicial y limpiar colores adivinados
                          await Player.updateMany(
-                             { gameId: game._id, isActive: true }, // Actualizar solo activos
-                             { $set: { guessedColorsPhase2: [], phase2GuessAttemptsThisTurn: 0 } } // Limpiar colores y resetear intentos a 0
+                             { gameId: game._id, isActive: true },
+                             { $set: { guessedColorsPhase2: [], phase2GuessAttemptsThisTurn: 0 } }
                          );
-                         // Establecer intentos para el primer jugador
                          await Player.findByIdAndUpdate(firstTurnPlayer._id, {
                               phase2GuessAttemptsThisTurn: PHASE2_GUESS_ATTEMPTS_PER_TURN
                          });
@@ -829,35 +789,30 @@ io.on('connection', (socket) => {
                          await broadcastGameState(game._id, game.gameCode);
 
                     } else {
-                         // Nadie activo? Juego termina
                          console.error("Error crítico: No hay jugadores activos para iniciar Fase 2.");
-                         game.status = 'finished_disconnect_game'; // O un estado similar
-                         game.currentPrizePot = 0; // Asegurar premio 0
+                         game.status = 'finished_disconnect_game';
+                         game.currentPrizePot = 0;
                          await game.save();
                          await broadcastGameOver(game);
                          return;
                     }
 
-                } else { // Mayoría NO o Empate -> Terminar juego, gana quien balanceó
+                } else { // Mayoría NO o Empate -> Terminar juego
                     console.log(`Votación RECHAZADA/Empate para Fase 2 en ${game.gameCode}. Terminando juego.`);
                     game.status = 'finished_balance_win';
-                    game.successfulGuesser = game.balancerPlayerId; // Asignar ganador
-                    // currentPrizePot ya está en INITIAL_PRIZE_POT
+                    game.successfulGuesser = game.balancerPlayerId;
                     await game.save();
-                    await broadcastGameOver(game); // broadcastGameOver reparte el premio
+                    await broadcastGameOver(game);
                 }
             } else if (requiredNow === 0) {
-                 // Caso raro: el último jugador votó y ya no quedan activos
                  console.log("Votación completada pero no quedan jugadores activos.");
-                 game.status = 'finished_disconnect_vote'; // Estado específico
+                 game.status = 'finished_disconnect_vote';
                  game.currentPrizePot = 0;
                  await game.save();
                  await broadcastGameOver(game);
             }
             else {
-                 // Aún no han votado todos, solo guardar el voto
                  await game.save();
-                 // Retransmitir estado para mostrar quién falta por votar
                  await broadcastGameState(game._id, game.gameCode);
             }
 
@@ -873,37 +828,32 @@ io.on('connection', (socket) => {
             const game = await Game.findById(gameId);
             const player = await Player.findById(playerId);
 
-            // --- Validaciones Fase 2 ---
             if (!game || !player || !player.isActive) return socket.emit('error', { message: "Juego o jugador inválido." });
             if (game.status !== 'guessing_phase') return socket.emit('error', { message: "No es la fase de adivinanza." });
             if (!game.currentPlayerId?.equals(player._id)) return socket.emit('error', { message: "No es tu turno." });
             if (player.phase2GuessAttemptsThisTurn <= 0) return socket.emit('error', { message: "No te quedan intentos este turno." });
             if (!MINERAL_TYPES.includes(color)) return socket.emit('error', { message: "Color inválido." });
-            const guessNum = parseInt(weightGuess); // Asegurar que sea número
+            const guessNum = parseInt(weightGuess);
             if (isNaN(guessNum) || guessNum < MIN_WEIGHT || guessNum > MAX_WEIGHT) return socket.emit('error', { message: `Adivinanza inválida (${MIN_WEIGHT}-${MAX_WEIGHT}).` });
             if (player.guessedColorsPhase2.includes(color)) return socket.emit('error', { message: `Ya intentaste adivinar ${color}.` });
-            // --- Fin Validaciones ---
 
-            console.log(`${player.name} intenta adivinar ${color} = ${guessNum}`);
+            console.log(`Fase 2: ${player.name} intenta adivinar ${color} = ${guessNum}`);
 
             player.phase2GuessAttemptsThisTurn -= 1;
             player.guessedColorsPhase2.push(color);
-            // Guardar jugador DESPUÉS de determinar resultado y premio
-            // await player.save(); // Guardar después
 
             const actualWeight = game.actualMineralWeights[color];
             const alreadyGuessedCorrectly = game.phase2CorrectGuessesMap.has(color);
 
-            if (guessNum === actualWeight) { // Acierto
+            if (guessNum === actualWeight) {
                  if (!alreadyGuessedCorrectly) {
-                      // ¡Acierto ÚNICO! Contabilizar y sumar premio.
-                      console.log(`¡CORRECTO! ${player.name} adivinó ${color}.`);
+                      console.log(`Fase 2: ¡CORRECTO! ${player.name} adivinó ${color}.`);
                       game.phase2CorrectGuessesTotal += 1;
                       game.phase2CorrectGuessesMap.set(color, player._id);
                       game.currentPrizePot += PHASE2_REWARD_PER_CORRECT_GUESS;
                       game.markModified('phase2CorrectGuessesMap');
-                      await game.save(); // Guardar cambios del juego (incluye premio)
-                      await player.save(); // Guardar jugador (intentos, color)
+                      await game.save();
+                      await player.save();
 
                       io.to(game.gameCode).emit('singleGuessResult', {
                            playerId: player._id, playerName: player.name, color, weightGuess: guessNum, correct: true, justGuessed: true, message: `¡${player.name} adivinó ${color}!`, newTotalGuesses: game.phase2CorrectGuessesTotal
@@ -911,17 +861,15 @@ io.on('connection', (socket) => {
                       io.to(game.gameCode).emit('prizePotUpdated', { newPrizePot: game.currentPrizePot });
 
                  } else {
-                      // Correcto, pero ya adivinado
-                      await player.save(); // Guardar jugador (intentos, color)
-                      console.log(`${player.name} adivinó ${color} (correcto), pero ya descubierto.`);
+                      await player.save();
+                      console.log(`Fase 2: ${player.name} adivinó ${color} (correcto), pero ya descubierto.`);
                       io.to(game.gameCode).emit('singleGuessResult', {
                            playerId: player._id, playerName: player.name, color, weightGuess: guessNum, correct: true, justGuessed: false, message: `${player.name} adivinó ${color} (correcto), pero ya lo habían encontrado.`
                       });
                  }
             } else {
-                 // Incorrecto
-                 await player.save(); // Guardar jugador (intentos, color)
-                 console.log(`INCORRECTO. ${player.name} falló ${color}.`);
+                 await player.save();
+                 console.log(`Fase 2: INCORRECTO. ${player.name} falló ${color}.`);
                  io.to(game.gameCode).emit('singleGuessResult', {
                       playerId: player._id, playerName: player.name, color, weightGuess: guessNum, correct: false, justGuessed: false, message: `${player.name} falló al adivinar ${color}.`
                  });
@@ -947,7 +895,7 @@ io.on('connection', (socket) => {
             if (!game.currentPlayerId?.equals(player._id)) return socket.emit('error', { message: "No es tu turno para pasar." });
 
             console.log(`${player.name} pasa el turno en ${game.gameCode}. Estado: ${game.status}`);
-            await advanceTurn(game, io); // Llamar helper
+            await advanceTurn(game, io);
 
         } catch (error) {
             console.error(`Error en passTurn para jugador ${playerId}:`, error);
@@ -955,21 +903,20 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Desconexión (ACTUALIZADO)
+    // Desconexión
      socket.on('disconnect', async (reason) => {
         console.log(`Cliente desconectado: ${socket.id}, Razón: ${reason}`);
         const player = await Player.findOne({ socketId: socket.id });
 
         if (player && player.gameId) {
-             const game = await Game.findById(player.gameId).populate('players', '_id isActive turnOrder'); // Poblar para lógica
+             const game = await Game.findById(player.gameId).populate('players', '_id isActive turnOrder name'); // Poblar nombres
              if (!game) {
                  console.log(`disconnect: Juego ${player.gameId} no encontrado para ${player.name}. Limpiando socketId.`);
-                 player.socketId = null; // Limpiar socket aunque no haya juego activo
+                 player.socketId = null;
                  await player.save();
                  return;
              }
 
-             // Si el juego ya terminó, solo limpiar socketId
              if (game.status.startsWith('finished')) {
                   console.log(`disconnect: Juego ${game.gameCode} ya terminado. Limpiando socketId de ${player.name}.`);
                   player.socketId = null;
@@ -977,7 +924,6 @@ io.on('connection', (socket) => {
                   return;
              }
 
-             // --- Manejo de desconexión en fases activas ---
              console.log(`Jugador ${player.name} desconectado de ${game.gameCode} (Estado: ${game.status}). Marcando inactivo.`);
              const wasCurrentPlayer = game.currentPlayerId?.equals(player._id);
              player.isActive = false;
@@ -986,7 +932,8 @@ io.on('connection', (socket) => {
 
              // Notificar a otros sobre la desconexión
              io.to(game.gameCode).emit('playerDisconnected', { playerId: player._id, playerName: player.name });
-             // Actualizar lista de jugadores para todos
+
+             // Actualizar lista de jugadores para todos (re-leer para obtener estado actualizado)
               const updatedPlayers = await Player.find({ gameId: game._id }).select('_id name turnOrder isActive inventory');
               const playersPublicInfo = updatedPlayers.map(p => ({
                   id: p._id, name: p.name, turnOrder: p.turnOrder, isActive: p.isActive,
@@ -995,51 +942,46 @@ io.on('connection', (socket) => {
               io.to(game.gameCode).emit('playerListUpdated', { players: playersPublicInfo, count: playersPublicInfo.length });
 
 
-             // CASO 1: Desconexión durante VOTACIÓN -> Termina juego INMEDIATAMENTE
              if (game.status === 'voting') {
                  console.log(`Desconexión DURANTE VOTACIÓN en ${game.gameCode}. Terminando.`);
+                 // Informar a los clientes restantes
+                 io.to(game.gameCode).emit('gameEndedDueToVoteDisconnect', { playerName: player.name });
                  game.status = 'finished_disconnect_vote';
-                 game.currentPrizePot = 0; // Nadie gana
+                 game.currentPrizePot = 0;
                  await game.save();
                  await broadcastGameOver(game);
-                 return; // Importante salir aquí
+                 return;
              }
 
-             // CASO 2: Desconexión durante 'playing' o 'guessing_phase'
              let needsTurnAdvance = false;
              if ((game.status === 'playing' || game.status === 'guessing_phase') && wasCurrentPlayer) {
                   console.log(`disconnect: Era el turno del jugador desconectado ${player.name}. Avanzando turno...`);
                   needsTurnAdvance = true;
              }
 
-             // Comprobar si quedan jugadores activos DESPUÉS de marcarlo inactivo
-             const remainingActivePlayersCount = await Player.countDocuments({ gameId: game._id, isActive: true });
+             const remainingActivePlayersCount = updatedPlayers.filter(p => p.isActive).length; // Usar lista ya leída
 
              if (remainingActivePlayersCount === 0) {
-                 // Si era el último jugador activo
                  console.log(`¡Último jugador ${player.name} desconectado de ${game.gameCode}! Terminando juego.`);
                  if (game.status === 'guessing_phase') {
                       game.status = game.phase2CorrectGuessesTotal >= PHASE2_TARGET_CORRECT_GUESSES ? 'finished_phase2_win' : 'finished_phase2_loss';
-                      if (game.status === 'finished_phase2_loss') game.currentPrizePot = 0;
                  } else {
                       game.status = 'finished_disconnect_game';
-                      game.currentPrizePot = 0;
                  }
+                 // El premio se determina en broadcastGameOver
                  game.currentPlayerId = null;
                  await game.save();
                  await broadcastGameOver(game);
 
              } else if (needsTurnAdvance) {
-                  // Si era su turno y quedan otros, avanzar turno
                   await advanceTurn(game, io);
              } else {
-                  // No era su turno, pero quedan otros, solo notificar estado
+                  // Si no era su turno, solo transmitir el estado actualizado
                   await broadcastGameState(game._id, game.gameCode);
              }
 
         } else {
-             // No se encontró jugador asociado a ese socketId
-             // console.log(`disconnect: No se encontró jugador para socket ${socket.id}.`);
+            // console.log(`disconnect: No se encontró jugador para socket ${socket.id}.`);
         }
     });
 
@@ -1049,49 +991,44 @@ io.on('connection', (socket) => {
 async function advanceTurn(game, ioInstance) {
     if (!game || !game.status || game.status.startsWith('finished')) return; // Guard clause
 
-    const previousPlayerId = game.currentPlayerId; // Quién acaba de pasar/desconectar
+    const previousPlayerId = game.currentPlayerId;
     let nextPlayer = null;
-    let roundEnded = false; // Flag para Fase 2
+    let roundEnded = false;
 
-    // 1. Encontrar al siguiente jugador activo que pueda jugar
-    nextPlayer = await findNextActivePlayer(game);
+    nextPlayer = await findNextActivePlayer(game); // Busca el siguiente activo
 
-    // 2. Manejar lógica de Rondas y Fin de Fase 2 (si aplica)
+    // Lógica de Rondas Fase 2
     if (game.status === 'guessing_phase' && previousPlayerId && nextPlayer) {
-        // Obtener turnOrder de ambos para detectar fin de ronda
-        // Necesitamos leer el jugador anterior de la DB si no lo tenemos poblado
+        // Necesitamos leer el turnOrder del jugador anterior
         const previousPlayer = await Player.findById(previousPlayerId).select('turnOrder');
         if (previousPlayer && (nextPlayer.turnOrder <= previousPlayer.turnOrder)) {
+            // Se completó una vuelta completa
             roundEnded = true;
             game.phase2RoundsPlayed += 1;
             console.log(`Fin de Ronda ${game.phase2RoundsPlayed} en Fase 2.`);
 
             if (game.phase2RoundsPlayed >= PHASE2_TOTAL_ROUNDS) {
-                 // Se completaron las 3 rondas, evaluar resultado
                  console.log("Se completaron las 3 rondas de Fase 2. Evaluando...");
-                 if (game.phase2CorrectGuessesTotal >= PHASE2_TARGET_CORRECT_GUESSES) {
-                      console.log(`¡Equipo GANA Fase 2! Aciertos: ${game.phase2CorrectGuessesTotal}`);
-                      game.status = 'finished_phase2_win';
-                 } else {
-                      console.log(`Equipo PIERDE Fase 2. Aciertos: ${game.phase2CorrectGuessesTotal} < ${PHASE2_TARGET_CORRECT_GUESSES}`);
-                      game.status = 'finished_phase2_loss';
-                      // El premio ya se habrá puesto a 0 al momento de asignar victoria/derrota antes del broadcast
-                 }
-                 game.currentPlayerId = null; // Fin del juego
+                 game.status = game.phase2CorrectGuessesTotal >= PHASE2_TARGET_CORRECT_GUESSES
+                               ? 'finished_phase2_win'
+                               : 'finished_phase2_loss';
+                 console.log(`Resultado Fase 2: ${game.status}`);
+                 game.currentPlayerId = null;
                  await game.save();
-                 await broadcastGameOver(game);
-                 return; // Salir de advanceTurn porque el juego terminó
+                 await broadcastGameOver(game); // broadcastGameOver manejará premio
+                 return;
             }
         }
-        // Si el juego continúa en Fase 2, resetear intentos para el siguiente jugador
+        // Resetear intentos para el siguiente jugador si el juego continúa
         if (nextPlayer && !game.status.startsWith('finished')) {
              await Player.findByIdAndUpdate(nextPlayer._id, {
                  phase2GuessAttemptsThisTurn: PHASE2_GUESS_ATTEMPTS_PER_TURN
              });
+             console.log(`advanceTurn: Reseteando intentos Fase 2 para ${nextPlayer.name}`);
         }
     }
 
-    // 3. Actualizar turno o terminar si no hay siguiente jugador
+    // Actualizar turno o terminar si no hay siguiente
     if (nextPlayer) {
          game.currentPlayerId = nextPlayer._id;
          game.currentTurnOrder = nextPlayer.turnOrder;
@@ -1102,22 +1039,16 @@ async function advanceTurn(game, ioInstance) {
         // No se encontró siguiente jugador válido
         console.log("advanceTurn: No se encontró un siguiente jugador válido. Terminando juego.");
          if (game.status === 'guessing_phase') {
-             // Si estábamos en Fase 2 y se traba, evaluar con los aciertos actuales
-              game.status = game.phase2CorrectGuessesTotal >= PHASE2_TARGET_CORRECT_GUESSES ? 'finished_phase2_win' : 'finished_phase2_loss';
+             game.status = game.phase2CorrectGuessesTotal >= PHASE2_TARGET_CORRECT_GUESSES ? 'finished_phase2_win' : 'finished_phase2_loss';
          } else if (game.status === 'playing') {
-             // Si estábamos en Fase 1 y nadie puede mover o adivinar
-             game.status = 'finished_failure'; // O 'finished_stalemate'
+             game.status = 'finished_failure'; // Nadie más puede jugar/adivinar en Fase 1
          } else {
-              // Si el estado es 'voting' u otro inesperado y no hay siguiente, terminar por desconexión/error
-              game.status = 'finished_disconnect_game';
+              game.status = 'finished_disconnect_game'; // Estado inesperado, asumir desconexión
          }
-         // Asegurar que el premio sea 0 si no se ganó explícitamente
-         if (game.status !== 'finished_phase2_win' && game.status !== 'finished_balance_win' && game.status !== 'finished_phase1_guess_win') {
-             game.currentPrizePot = 0;
-         }
+         console.log(`advanceTurn: Juego termina con estado ${game.status}`);
          game.currentPlayerId = null;
          await game.save();
-         await broadcastGameOver(game);
+         await broadcastGameOver(game); // broadcastGameOver manejará premio
     }
 }
 

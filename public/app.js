@@ -30,7 +30,8 @@ const startGameBtn = document.getElementById('start-game-btn');
 const copyCodeBtn = document.getElementById('copy-code-btn');
 const placeSelectedBtn = document.getElementById('place-selected-btn'); // Fase 1
 const cancelPlacementBtn = document.getElementById('cancel-placement-btn'); // Fase 1
-const guessAllPhase1Btn = document.getElementById('guess-all-phase1-btn'); // NUEVO: Botón Fase 1 Adivinar Todo
+// const guessAllPhase1Btn = document.getElementById('guess-all-phase1-btn'); // REMOVED
+const submitGuessOneBtn = document.getElementById('submit-guess-one-btn'); // NUEVO: Botón Fase 1 Adivinar Uno
 const passTurnBtn = document.getElementById('pass-turn-btn'); // Ambas Fases
 const guessSingleWeightBtn = document.getElementById('guess-single-weight-btn'); // Fase 2
 const playAgainBtn = document.getElementById('play-again-btn');
@@ -40,19 +41,15 @@ const voteNoBtn = document.getElementById('vote-no-btn');
 // Formularios
 const createForm = document.getElementById('create-form');
 const joinForm = document.getElementById('join-form');
-const guessAllPhase1Form = document.getElementById('guess-all-phase1-form'); // NUEVO: Formulario Modal Fase 1
+// const guessAllPhase1Form = document.getElementById('guess-all-phase1-form'); // REMOVED
 
 // Inputs y Selects
-const guessSingleColorSelect = document.getElementById('guess-single-color-select');
-const guessSingleWeightInput = document.getElementById('guess-single-weight-input');
-// NUEVO: Inputs Modal Fase 1
-const guessAllInputs = {
-    Rojo: document.getElementById('guess-all-rojo'),
-    Amarillo: document.getElementById('guess-all-amarillo'),
-    Verde: document.getElementById('guess-all-verde'),
-    Azul: document.getElementById('guess-all-azul'),
-    Purpura: document.getElementById('guess-all-purpura'),
-};
+const guessSingleColorSelect = document.getElementById('guess-single-color-select'); // Fase 2 Select
+const guessSingleWeightInput = document.getElementById('guess-single-weight-input'); // Fase 2 Input
+// NUEVO: Inputs/Selects Fase 1 Adivinar Uno
+const guessOneColorSelect = document.getElementById('guess-one-color-select');
+const guessOneWeightInput = document.getElementById('guess-one-weight-input');
+// const guessAllInputs = { ... }; // REMOVED
 
 // Displays Espera
 const waitGameCodeDisplay = document.getElementById('wait-game-code-display');
@@ -66,7 +63,7 @@ const currentPlayerIndicator = document.getElementById('current-player-indicator
 const knownInfoText = document.getElementById('known-info-text');
 const prizeAmountDisplay = document.getElementById('prize-amount-display');
 const prizeConditionDisplay = document.getElementById('prize-condition-display');
-const myHackerBytesDisplay = document.getElementById('my-hacker-bytes-display'); // Informativo al final
+const myHackerBytesDisplay = document.getElementById('my-hacker-bytes-display');
 
 // Displays Fase 2
 const phase2InfoCard = document.getElementById('phase2-info-card');
@@ -74,12 +71,13 @@ const phase2RoundIndicator = document.getElementById('phase2-round-indicator');
 const phase2CorrectTotal = document.getElementById('phase2-correct-total');
 const currentPrizePotDisplay = document.getElementById('current-prize-pot');
 const phase2AttemptsLeft = document.getElementById('phase2-attempts-left');
-const singleGuessFeedback = document.getElementById('single-guess-feedback');
+const singleGuessFeedback = document.getElementById('single-guess-feedback'); // Fase 2 Feedback
 
 // Elementos por Fase
 const phase1Elements = document.querySelectorAll('.phase1-element');
 const phase2Elements = document.querySelectorAll('.phase2-element');
-const phase1GuessAllAction = document.getElementById('phase1-guess-all-action'); // NUEVO: Contenedor del botón Fase 1
+// const phase1GuessAllAction = document.getElementById('phase1-guess-all-action'); // REMOVED
+const phase1GuessOneAction = document.getElementById('phase1-guess-one-action'); // NUEVO: Contenedor acción adivinar uno Fase 1
 
 // Balanzas
 const mainScaleArm = document.getElementById('main-scale-arm');
@@ -106,6 +104,7 @@ const targetScaleSelect = document.getElementById('target-scale-select');
 const targetSideSelect = document.getElementById('target-side-select');
 const placementError = document.getElementById('placement-error');
 const cannotPlaceMessage = document.getElementById('cannot-place-message');
+const guessOneFeedback = document.getElementById('guess-one-feedback'); // NUEVO: Feedback Fase 1 Adivinar Uno
 
 // Sidebar Jugadores
 const gamePlayersList = document.getElementById('game-players-list');
@@ -116,9 +115,9 @@ const notificationModal = document.getElementById('notification-modal');
 const notificationMessage = document.getElementById('notification-message');
 const balancerNameModal = document.getElementById('balancer-name-modal');
 const voteStatusModal = document.getElementById('vote-status-modal');
-const guessAllPhase1Modal = document.getElementById('guess-all-phase1-modal'); // NUEVO: Modal Fase 1 Adivinar Todo
-const submitGuessAllBtn = document.getElementById('submit-guess-all-btn');     // NUEVO: Botón submit modal
-const guessAllFeedback = document.getElementById('guess-all-feedback');       // NUEVO: Feedback modal
+// const guessAllPhase1Modal = document.getElementById('guess-all-phase1-modal'); // REMOVED
+// const submitGuessAllBtn = document.getElementById('submit-guess-all-btn');     // REMOVED
+// const guessAllFeedback = document.getElementById('guess-all-feedback');       // REMOVED
 
 // Displays Finales
 const finalResultTitle = document.getElementById('final-result-title');
@@ -136,11 +135,10 @@ let isHost = false;
 let gameState = null;
 let currentScreen = screens.welcome;
 let selectedMineralInstanceIds = []; // Para Fase 1
-// turnTimerInterval eliminado o re-implementar si se necesita
 
 // --- Funciones de Utilidad y UI ---
 
-/** Muestra una pantalla con animación (sin cambios) */
+/** Muestra una pantalla con animación */
 function showScreen(screenElement) {
     if (!screenElement || currentScreen === screenElement) return;
     console.log(`CLIENT LOG: Switching screen to: ${screenElement.id}`);
@@ -174,7 +172,6 @@ function showScreen(screenElement) {
             duration: 400,
             easing: 'easeOutQuad',
             begin: () => {
-                 // Actualizar UI *antes* de mostrar si es la pantalla de juego
                  if (screenElement === screens.game && gameState) {
                      console.log("CLIENT LOG: showScreen - Updating game UI before animating entry.");
                      updateGameUI(gameState);
@@ -193,16 +190,17 @@ function showScreen(screenElement) {
             complete: () => {
                 console.log(`CLIENT LOG: showScreen - Transition to ${screenElement.id} complete.`);
                  if (screenElement === screens.game) {
-                     updatePlacementControlsVisibility(selectedMineralInstanceIds.length > 0); // Re-evaluar visibilidad
+                     updatePlacementControlsVisibility(selectedMineralInstanceIds.length > 0);
+                     updateGuessOneVisibility(gameState?.myTurn && gameState?.status === 'playing'); // NUEVO: Controlar visibilidad sección adivinar uno
                  }
             }
         });
     });
 }
 
-/** Muestra un modal con animación (sin cambios) */
+/** Muestra un modal con animación */
 function showModal(modalElement) {
-    if (!modalElement || modalElement.style.display === 'flex') return; // No mostrar si ya está visible
+    if (!modalElement || modalElement.style.display === 'flex') return;
     const modalContent = modalElement.querySelector('.modal-content');
     anime.set(modalElement, { display: 'flex', opacity: 0 });
     anime.set(modalContent, { opacity: 0, scale: 0.8, translateY: -20 });
@@ -214,18 +212,11 @@ function showModal(modalElement) {
         translateY: [-20, 0],
         duration: 400,
         delay: 50,
-        easing: 'easeOutElastic(1, .8)',
-        complete: () => {
-            // Enfocar el primer input del modal si es el de adivinar todo
-            if (modalElement === guessAllPhase1Modal) {
-                const firstInput = modalElement.querySelector('input[type="number"]');
-                firstInput?.focus();
-            }
-        }
+        easing: 'easeOutElastic(1, .8)'
     });
 }
 
-/** Oculta un modal con animación (sin cambios) */
+/** Oculta un modal con animación */
 function hideModal(modalElement) {
     if (!modalElement || modalElement.style.display === 'none') return;
     const modalContent = modalElement.querySelector('.modal-content');
@@ -238,16 +229,12 @@ function hideModal(modalElement) {
         easing: 'linear',
         complete: () => {
             modalElement.style.display = 'none';
-            // Limpiar feedback del modal de adivinar todo al cerrar
-            if (modalElement === guessAllPhase1Modal && guessAllFeedback) {
-                 guessAllFeedback.textContent = '';
-                 guessAllFeedback.classList.add('hidden');
-            }
+            // Limpiar feedback del modal de adivinar todo al cerrar - REMOVED
         }
     });
 }
 
-/** Muestra una notificación (sin cambios) */
+/** Muestra una notificación */
 function showNotification(message, title = 'Notificación') {
     const notificationTitleEl = document.getElementById('notification-title');
     if(notificationTitleEl) notificationTitleEl.innerHTML = `<i class="fas fa-info-circle"></i> ${title}`;
@@ -255,13 +242,13 @@ function showNotification(message, title = 'Notificación') {
     showModal(notificationModal);
 }
 
-/** Formatea un peso (sin cambios) */
+/** Formatea un peso */
 function formatWeight(weight) { return (typeof weight === 'number') ? weight.toFixed(0) : '0'; }
 
-/** Formatea Hacker Bytes (sin cambios) */
+/** Formatea Hacker Bytes */
 function formatHackerBytes(amount) { return (typeof amount === 'number') ? amount.toLocaleString('es-CR') : '0'; }
 
-/** Actualiza UNA balanza (principal o secundaria) - Lógica de inclinación igual, display de peso eliminado */
+/** Actualiza UNA balanza (principal o secundaria) */
 function updateSingleScaleDisplay(scalePrefix, scaleData) {
     if (!scaleData) return;
 
@@ -277,12 +264,10 @@ function updateSingleScaleDisplay(scalePrefix, scaleData) {
     renderScaleMaterialsStack(leftMaterialsEl, scaleData.leftMaterials || []);
     renderScaleMaterialsStack(rightMaterialsEl, scaleData.rightMaterials || []);
 
-    // Animación de inclinación (misma lógica)
     if (scaleArm) {
         const difference = leftWeight - rightWeight;
         const maxAngle = 15; const maxPlatformOffset = 15; const sensitivity = 0.15;
         let angle = 0; let platformOffsetY = 0;
-        // Inclinar solo si hay diferencia REAL (no considerar umbral aquí para visualización)
         if (difference !== 0) {
             angle = Math.sign(difference) * Math.min(maxAngle, Math.log1p(Math.abs(difference)) * maxAngle * sensitivity);
             platformOffsetY = Math.sign(difference) * Math.min(maxPlatformOffset, Math.abs(difference) * 0.5);
@@ -293,21 +278,17 @@ function updateSingleScaleDisplay(scalePrefix, scaleData) {
         }
     }
 
-    // Lógica específica para balanza principal (Estado equilibrado/desequilibrado)
     if (scalePrefix === 'main') {
-        // Usar el estado precalculado del servidor que considera la igualdad estricta
         const isBalanced = gameState?.isMainScaleBalanced ?? false;
         if (mainBalanceStatus) {
              mainBalanceStatus.textContent = isBalanced ? '(Equilibrada)' : '(Desequilibrada)';
              mainBalanceStatus.classList.toggle('balanced', isBalanced);
              mainBalanceStatus.classList.toggle('unbalanced', !isBalanced);
         }
-        // Ya no hay botón de adivinar global aquí
     }
 }
 
-
-/** Renderiza materiales en balanza (SOLO TIPO) con animación (sin cambios) */
+/** Renderiza materiales en balanza (SOLO TIPO) con animación */
 function renderScaleMaterialsStack(container, materialsList) {
     if (!container) return;
     const fragment = document.createDocumentFragment(); const itemsToAnimateEnter = []; const existingElementsMap = new Map();
@@ -318,7 +299,7 @@ function renderScaleMaterialsStack(container, materialsList) {
         else {
             div = document.createElement('div'); const typeClass = mat.type ? mat.type.toLowerCase() : 'desconocido';
             div.className = `material-item ${typeClass}`; div.dataset.instanceId = instanceId;
-            div.style.setProperty('--mineral-color', `var(--mineral-${typeClass})`); // Set CSS variable
+            div.style.setProperty('--mineral-color', `var(--mineral-${typeClass})`);
             div.style.opacity = 0; div.style.transform = 'translateY(10px) scale(0.9)'; itemsToAnimateEnter.push(div);
         }
         div.textContent = `${mat.type || '?'}`; div.title = `Mineral ${mat.type || 'Desconocido'}`; fragment.appendChild(div);
@@ -329,8 +310,7 @@ function renderScaleMaterialsStack(container, materialsList) {
     if (itemsToAnimateEnter.length > 0) { anime({ targets: itemsToAnimateEnter, opacity: 1, translateY: 0, scale: 1, delay: anime.stagger(60, { start: itemsToAnimateExit.length > 0 ? 150 : 0 }), duration: 400, easing: 'easeOutExpo' }); }
 }
 
-
-/** Renderiza inventario (SOLO TIPO) - Lógica adaptada para FASE 1 */
+/** Renderiza inventario (SOLO TIPO) - FASE 1 */
 function renderPlayerInventory(inventory) {
     if (!myInventoryContainer) return;
 
@@ -339,7 +319,6 @@ function renderPlayerInventory(inventory) {
     myInventoryContainer.childNodes.forEach(node => { if (node.nodeType === 1 && node.dataset.instanceId) currentInventoryMap.set(node.dataset.instanceId, node); });
     const itemsToAnimateEnter = [];
 
-    // Interactuable si es mi turno Y estamos en Fase 1 ('playing') Y puede colocar
     const canInteract = gameState?.myTurn && gameState?.status === 'playing' && gameState?.iCanPlaceMinerals;
 
     if (!Array.isArray(inventory) || inventory.length === 0) {
@@ -347,7 +326,7 @@ function renderPlayerInventory(inventory) {
         if (myMineralCount) myMineralCount.textContent = '0';
         if (cannotPlaceMessage) cannotPlaceMessage.classList.remove('hidden');
         selectedMineralInstanceIds = [];
-        updatePlacementControls(); // Ocultar controles
+        updatePlacementControls();
         return;
     }
 
@@ -371,14 +350,12 @@ function renderPlayerInventory(inventory) {
             button.addEventListener('click', handleInventoryItemClick);
             itemsToAnimateEnter.push(button);
         }
-        // Actualizar estado y contenido
         button.textContent = `${mineral.type || '?'}`;
         button.title = `Mineral ${mineral.type || 'Desconocido'}`;
-        button.style.setProperty('--mineral-color', `var(--mineral-${typeClass})`); // Set CSS variable
+        button.style.setProperty('--mineral-color', `var(--mineral-${typeClass})`);
         button.disabled = !canInteract;
         button.classList.toggle('selected-material', selectedMineralInstanceIds.includes(instanceId) && canInteract);
 
-        // Deseleccionar si ya no se puede interactuar
         if (selectedMineralInstanceIds.includes(instanceId) && !canInteract) {
             selectedMineralInstanceIds = selectedMineralInstanceIds.filter(id => id !== instanceId);
             button.classList.remove('selected-material');
@@ -394,8 +371,7 @@ function renderPlayerInventory(inventory) {
     updatePlacementControls();
 }
 
-
-/** Manejador de clic para item de inventario (sin cambios) */
+/** Manejador de clic para item de inventario */
 function handleInventoryItemClick(event) {
     const button = event.currentTarget; if (button.disabled) return; const id = button.dataset.instanceId; const isSelected = button.classList.toggle('selected-material');
     if (isSelected) { if (!selectedMineralInstanceIds.includes(id)) selectedMineralInstanceIds.push(id); } else { selectedMineralInstanceIds = selectedMineralInstanceIds.filter(selId => selId !== id); }
@@ -403,8 +379,7 @@ function handleInventoryItemClick(event) {
     updatePlacementControls();
 }
 
-
-/** Actualiza la sección de controles de colocación (FASE 1) - MODIFICADO */
+/** Actualiza la sección de controles de colocación (FASE 1) */
 function updatePlacementControls() {
     if (!placementControlsSection || !gameState) return;
 
@@ -412,10 +387,7 @@ function updatePlacementControls() {
     const isEven = count > 0 && count % 2 === 0;
     const hasEnough = count >= 2;
 
-    // Puede colocar si: es su turno, en fase 'playing', puede colocar en general, seleccionó suficientes Y la cantidad es par.
     const canPlaceSelection = gameState.myTurn && gameState.status === 'playing' && gameState.iCanPlaceMinerals && hasEnough && isEven;
-
-    // Mostrar controles si: tiene algo seleccionado Y es su turno Y está en fase 'playing' Y puede colocar en general.
     const shouldShowControls = count > 0 && gameState.myTurn && gameState.status === 'playing' && gameState.iCanPlaceMinerals;
 
     updatePlacementControlsVisibility(shouldShowControls);
@@ -423,7 +395,6 @@ function updatePlacementControls() {
     if (selectedCountSpan) selectedCountSpan.textContent = count;
     if (placeSelectedBtn) placeSelectedBtn.disabled = !canPlaceSelection;
 
-    // Actualizar mensaje de error
     if (placementError) {
         let errorMsg = '';
         if (count > 0 && !hasEnough) {
@@ -439,8 +410,7 @@ function updatePlacementControls() {
     if(targetSideSelect) targetSideSelect.disabled = count === 0;
 }
 
-
-/** Controla la visibilidad animada de los controles de colocación (sin cambios) */
+/** Controla la visibilidad animada de los controles de colocación */
 function updatePlacementControlsVisibility(shouldShow) {
     if (!placementControlsSection) return; const isCurrentlyVisible = placementControlsSection.classList.contains('visible');
     if (shouldShow && !isCurrentlyVisible) {
@@ -455,38 +425,123 @@ function updatePlacementControlsVisibility(shouldShow) {
     }
 }
 
+/** NUEVO: Controla la visibilidad animada de la sección de adivinar uno (Fase 1) */
+function updateGuessOneVisibility(shouldShow) {
+    if (!phase1GuessOneAction) return;
+    const isCurrentlyVisible = phase1GuessOneAction.classList.contains('visible'); // Usaremos 'visible' para controlar la animación también
+
+    if (shouldShow && !isCurrentlyVisible) {
+        phase1GuessOneAction.classList.remove('hidden');
+        phase1GuessOneAction.classList.add('visible');
+        // Animación similar a placement controls (opcional)
+        const targetHeight = phase1GuessOneAction.scrollHeight; // Calcular altura natural
+        anime({
+            targets: phase1GuessOneAction,
+            height: [0, targetHeight + 'px'], // Animar altura
+            opacity: [0, 1],
+            paddingTop: [0, 15], // Animar padding
+            marginTop: [0, 25], // Animar margen
+            duration: 350,
+            easing: 'easeOutQuad',
+            complete: () => {
+                phase1GuessOneAction.style.height = 'auto'; // Restablecer altura automática
+            }
+        });
+    } else if (!shouldShow && isCurrentlyVisible) {
+        anime({
+            targets: phase1GuessOneAction,
+            height: 0, // Colapsar altura
+            opacity: 0,
+            paddingTop: 0,
+            marginTop: 0,
+            duration: 300,
+            easing: 'easeInQuad',
+            complete: () => {
+                phase1GuessOneAction.classList.remove('visible');
+                phase1GuessOneAction.classList.add('hidden');
+                phase1GuessOneAction.style.height = ''; // Limpiar estilo inline
+            }
+        });
+    } else if (!shouldShow && !isCurrentlyVisible) {
+         // Asegurarse de que esté oculto si no debe mostrarse y no está visible
+         phase1GuessOneAction.classList.add('hidden');
+         phase1GuessOneAction.classList.remove('visible');
+         phase1GuessOneAction.style.height = '';
+         phase1GuessOneAction.style.opacity = '0';
+         phase1GuessOneAction.style.paddingTop = '0';
+         phase1GuessOneAction.style.marginTop = '0';
+    }
+}
+
+
 /** Popula el selector de colores para adivinar en Fase 2 */
-function populateGuessColorSelect() {
+function populateGuessColorSelectFase2() { // Renombrado para claridad
     if (!guessSingleColorSelect || !gameState || gameState.status !== 'guessing_phase') return;
 
     const previouslyAttempted = gameState.myGuessedColorsPhase2 || [];
-    // Necesitamos saber qué colores ya fueron adivinados correctamente por el equipo.
-    // Esta info no está directamente en gameState, asumimos que si intento un color ya adivinado, el servidor lo rechazará o notificará.
-    // Por ahora, solo filtramos los que YO ya intenté.
+    // Asumimos que el servidor no enviará colores ya adivinados globalmente como opción implícitamente
     const availableColors = MINERAL_TYPES.filter(color => !previouslyAttempted.includes(color));
 
-    // Guardar valor seleccionado si existe
     const currentSelection = guessSingleColorSelect.value;
-
-    guessSingleColorSelect.innerHTML = '<option value="">-- Selecciona Color --</option>'; // Reset
+    guessSingleColorSelect.innerHTML = '<option value="">-- Selecciona Color --</option>';
     availableColors.forEach(color => {
         const option = document.createElement('option');
         option.value = color;
         option.textContent = color;
-        option.classList.add(color.toLowerCase()); // Para estilos
+        option.classList.add(color.toLowerCase());
         guessSingleColorSelect.appendChild(option);
+    });
+
+    if (availableColors.includes(currentSelection)) {
+        guessSingleColorSelect.value = currentSelection;
+    }
+    guessSingleColorSelect.disabled = availableColors.length === 0;
+}
+
+/** NUEVO: Popula el selector de colores para adivinar en Fase 1 */
+function populateGuessOneColorSelect() {
+    if (!guessOneColorSelect || !gameState || gameState.status !== 'playing') return;
+
+    const correctlyGuessed = gameState.phase1CorrectlyGuessedWeights ? Object.keys(gameState.phase1CorrectlyGuessedWeights) : [];
+    // Colores disponibles: Todos MENOS Amarillo y los ya adivinados correctamente
+    const availableColors = MINERAL_TYPES.filter(color =>
+        color !== 'Amarillo' && !correctlyGuessed.includes(color)
+    );
+
+    const currentSelection = guessOneColorSelect.value;
+    guessOneColorSelect.innerHTML = '<option value="">-- Selecciona --</option>'; // Resetear
+    availableColors.forEach(color => {
+        const option = document.createElement('option');
+        option.value = color;
+        option.textContent = color;
+        option.classList.add(color.toLowerCase()); // Para estilo si se añade
+        guessOneColorSelect.appendChild(option);
     });
 
     // Restaurar selección si aún es válida
     if (availableColors.includes(currentSelection)) {
-        guessSingleColorSelect.value = currentSelection;
+        guessOneColorSelect.value = currentSelection;
+    } else {
+        guessOneColorSelect.value = ""; // Limpiar si la opción ya no existe
     }
 
-    // Habilitar/deshabilitar basado en si quedan opciones
-    guessSingleColorSelect.disabled = availableColors.length === 0;
+    // Habilitar/deshabilitar basado en si quedan opciones y es mi turno
+    const canGuess = gameState.myTurn && availableColors.length > 0;
+    guessOneColorSelect.disabled = !canGuess;
+    if(guessOneWeightInput) guessOneWeightInput.disabled = !canGuess;
+    if(submitGuessOneBtn) submitGuessOneBtn.disabled = !canGuess;
+
+    // Actualizar feedback si no quedan colores
+    if (guessOneFeedback && availableColors.length === 0 && gameState.myTurn) {
+        guessOneFeedback.textContent = "Ya se han adivinado todos los pesos posibles en esta fase.";
+        guessOneFeedback.classList.remove("error-text", "success-highlight");
+    } else if (guessOneFeedback && !gameState.myTurn) {
+        guessOneFeedback.textContent = ""; // Limpiar si no es mi turno
+    }
 }
 
-/** Función PRINCIPAL para actualizar TODA la UI del juego (REESTRUCTURADA y MODIFICADA) */
+
+/** Función PRINCIPAL para actualizar TODA la UI del juego */
 function updateGameUI(newState) {
     console.log(`--- Updating UI for Player ${playerId}. Status: ${newState?.status} ---`);
     if (!newState) {
@@ -499,9 +554,9 @@ function updateGameUI(newState) {
     const wasMyTurnBefore = gameState?.myTurn;
     gameState = newState; // Actualizar estado global
 
-    // --- Actualizaciones Generales (Siempre visibles) ---
+    // --- Actualizaciones Generales ---
     const currentPlayer = gameState.currentPlayer;
-    if (currentPlayerIndicator) { // Indicador de turno
+    if (currentPlayerIndicator) {
         const newText = currentPlayer
             ? `${currentPlayer.name} (T${currentPlayer.turnOrder})`
             : (gameState.status.startsWith('finished') ? 'Juego Terminado' : 'Esperando...');
@@ -511,12 +566,11 @@ function updateGameUI(newState) {
                  anime({ targets: currentPlayerIndicator, opacity: [0, 1], duration: 400 }); } });
         }
     }
-    if (knownInfoText) knownInfoText.textContent = gameState.knownMineralInfo?.description || '-'; // Pista inicial
-    if (prizeAmountDisplay) prizeAmountDisplay.textContent = formatHackerBytes(gameState.currentPrizePot); // Premio potencial/actual
+    if (knownInfoText) knownInfoText.textContent = gameState.knownMineralInfo?.description || '-';
+    if (prizeAmountDisplay) prizeAmountDisplay.textContent = formatHackerBytes(gameState.currentPrizePot);
 
-    // Actualizar condición del premio
     if (prizeConditionDisplay) {
-        if (gameState.status === 'playing') prizeConditionDisplay.textContent = "(Equilibra la balanza para votar)";
+        if (gameState.status === 'playing') prizeConditionDisplay.textContent = "(Equilibra la balanza o adivina pesos)";
         else if (gameState.status === 'guessing_phase') prizeConditionDisplay.textContent = `(Adivina ${PHASE2_TARGET_CORRECT_GUESSES} pesos en ${PHASE2_TOTAL_ROUNDS} rondas)`;
         else if (gameState.status === 'voting') prizeConditionDisplay.textContent = "(Vota para continuar o terminar)";
         else prizeConditionDisplay.textContent = "(Juego terminado)";
@@ -544,7 +598,6 @@ function updateGameUI(newState) {
             if (isMe) li.classList.add('my-player-row');
             if (isCurrent && (gameState.status === 'playing' || gameState.status === 'guessing_phase')) li.classList.add('current-player-row');
 
-            // Construir HTML interno
             li.innerHTML = `
                 <span class="player-order">${p.turnOrder || '?'}</span>.
                 <span class="player-name">${p.name || '??'} ${isMe ? '<span class="you-tag">(Tú)</span>' : ''}</span>
@@ -567,48 +620,46 @@ function updateGameUI(newState) {
     const isMyTurnNow = gameState.myTurn;
     const statusChanged = oldStatus !== gameState.status;
 
-    // Añadir/quitar clase al body para estilos condicionales
     document.body.classList.toggle('guessing-phase-active', gameState.status === 'guessing_phase');
 
-    // Mostrar/Ocultar elementos de Fase 1 vs Fase 2
     phase1Elements.forEach(el => el.classList.toggle('hidden', gameState.status !== 'playing'));
     phase2Elements.forEach(el => el.classList.toggle('hidden', gameState.status !== 'guessing_phase'));
 
-    // Indicador de Turno
     if (myTurnIndicator) myTurnIndicator.classList.toggle('hidden', !isMyTurnNow || gameState.status.startsWith('finished') || gameState.status === 'voting');
     if (waitingTurnIndicator) waitingTurnIndicator.classList.toggle('hidden', isMyTurnNow || gameState.status.startsWith('finished') || gameState.status === 'voting');
-    // Animar cambio de turno si aplica
     if (isMyTurnNow && !wasMyTurnBefore && !myTurnIndicator.classList.contains('hidden')) { anime({ targets: myTurnIndicator, opacity: [0, 1], translateY: [-10, 0], duration: 400 }); }
     else if (!isMyTurnNow && wasMyTurnBefore && !waitingTurnIndicator.classList.contains('hidden')) { anime({ targets: waitingTurnIndicator, opacity: [0, 1], duration: 400 }); }
 
-    // Botón Pasar Turno
     if (passTurnBtn) passTurnBtn.disabled = !isMyTurnNow || (gameState.status !== 'playing' && gameState.status !== 'guessing_phase');
 
 
-    // Fase 1: Colocación y Adivinanza Opcional
+    // Fase 1: Colocación y Adivinanza Individual
     if (gameState.status === 'playing') {
-        renderPlayerInventory(gameState.myInventory || []); // Actualiza inventario y controles de colocación
-        if (statusChanged) { // Si acabamos de entrar a 'playing'
-            selectedMineralInstanceIds = []; // Limpiar selección
-            updatePlacementControls(); // Asegurar estado inicial correcto
+        renderPlayerInventory(gameState.myInventory || []);
+        if (statusChanged || (isMyTurnNow && !wasMyTurnBefore)) { // Resetear al entrar a fase o al empezar mi turno
+            selectedMineralInstanceIds = [];
+            updatePlacementControls();
+            populateGuessOneColorSelect(); // Poblar selector de adivinanza
+            if (guessOneFeedback) guessOneFeedback.textContent = ""; // Limpiar feedback anterior
+            if (guessOneWeightInput) guessOneWeightInput.value = ""; // Limpiar input
         }
-        // Mostrar/Ocultar botón de adivinar todo
-        if (phase1GuessAllAction) phase1GuessAllAction.classList.toggle('hidden', !isMyTurnNow);
+        // Mostrar/Ocultar sección de adivinar uno y habilitar/deshabilitar controles
+        updateGuessOneVisibility(isMyTurnNow);
+        populateGuessOneColorSelect(); // Asegurar que esté actualizado con colores/estado disabled
 
     } else {
-        // Si no estamos en 'playing', ocultar controles de colocación y limpiar selección
+        // Si no estamos en 'playing', ocultar controles de colocación y adivinanza
         updatePlacementControlsVisibility(false);
+        updateGuessOneVisibility(false); // NUEVO
         if (selectedMineralInstanceIds.length > 0) {
             myInventoryContainer?.querySelectorAll('.selected-material').forEach(btn => btn.classList.remove('selected-material'));
             selectedMineralInstanceIds = [];
         }
-        // Ocultar botón de adivinar todo si no es Fase 1
-        if (phase1GuessAllAction) phase1GuessAllAction.classList.add('hidden');
     }
 
     // Fase de Votación
     if (gameState.status === 'voting') {
-        if (votingModal.style.display === 'none' || statusChanged) { // Mostrar si estaba oculto o si cambió el estado
+        if (votingModal.style.display === 'none' || statusChanged) {
              if(balancerNameModal && gameState.balancerPlayer) balancerNameModal.textContent = gameState.balancerPlayer.name || 'Alguien';
              const myVote = gameState.votingState?.myVote;
              const canVote = myVote === null;
@@ -617,7 +668,6 @@ function updateGameUI(newState) {
              if(voteStatusModal) voteStatusModal.textContent = canVote ? "Esperando tu voto..." : "Voto registrado. Esperando a los demás...";
              showModal(votingModal);
         }
-        // Actualizar estado de espera si ya voté
         if (gameState.votingState?.myVote !== null && voteStatusModal) {
              const votesReceived = gameState.votingState?.receivedVotes ?? 0;
              const votesRequired = gameState.votingState?.requiredVotes ?? gameState.playersPublicInfo.filter(p => p.isActive).length;
@@ -625,10 +675,10 @@ function updateGameUI(newState) {
         }
 
     } else {
-        if (votingModal.style.display !== 'none') hideModal(votingModal); // Ocultar si no estamos votando
+        if (votingModal.style.display !== 'none') hideModal(votingModal);
     }
 
-    // Fase 2: Adivinanza
+    // Fase 2: Adivinanza Obligatoria
     if (gameState.status === 'guessing_phase') {
         if (phase2RoundIndicator) phase2RoundIndicator.textContent = `${gameState.phase2RoundsPlayed + 1} / ${PHASE2_TOTAL_ROUNDS}`;
         if (phase2CorrectTotal) phase2CorrectTotal.textContent = `${gameState.phase2CorrectGuessesTotal} / ${PHASE2_TARGET_CORRECT_GUESSES}`;
@@ -636,30 +686,38 @@ function updateGameUI(newState) {
 
         if (isMyTurnNow) {
             if (phase2AttemptsLeft) phase2AttemptsLeft.textContent = `${gameState.myPhase2AttemptsLeft} / ${PHASE2_GUESS_ATTEMPTS_PER_TURN}`;
-            populateGuessColorSelect(); // Llenar select con colores disponibles
-            const canGuess = gameState.myPhase2AttemptsLeft > 0 && guessSingleColorSelect && guessSingleColorSelect.options.length > 1; // Hay intentos Y colores disponibles
+            populateGuessColorSelectFase2();
+            const canGuess = gameState.myPhase2AttemptsLeft > 0 && guessSingleColorSelect && guessSingleColorSelect.options.length > 1;
             if(guessSingleWeightInput) guessSingleWeightInput.disabled = !canGuess;
             if(guessSingleWeightBtn) guessSingleWeightBtn.disabled = !canGuess;
-            if(singleGuessFeedback) singleGuessFeedback.textContent = canGuess ? "Selecciona color y peso." : (gameState.myPhase2AttemptsLeft <= 0 ? "No te quedan intentos." : "No quedan colores por adivinar.");
+            // Limpiar feedback al inicio del turno o si cambia el estado de 'poder adivinar'
+            if (singleGuessFeedback && (statusChanged || (isMyTurnNow && !wasMyTurnBefore))) {
+                 singleGuessFeedback.textContent = canGuess ? "Selecciona color y peso." : (gameState.myPhase2AttemptsLeft <= 0 ? "No te quedan intentos." : "No quedan colores por adivinar.");
+                 singleGuessFeedback.classList.remove('success-highlight', 'error-text');
+                 if(guessSingleWeightInput) guessSingleWeightInput.value = ""; // Limpiar input
+                 if(guessSingleColorSelect) guessSingleColorSelect.value = ""; // Deseleccionar
+            }
+
         } else {
-            // No es mi turno
             if (phase2AttemptsLeft) phase2AttemptsLeft.textContent = `- / ${PHASE2_GUESS_ATTEMPTS_PER_TURN}`;
             if(guessSingleColorSelect) guessSingleColorSelect.disabled = true;
             if(guessSingleWeightInput) guessSingleWeightInput.disabled = true;
             if(guessSingleWeightBtn) guessSingleWeightBtn.disabled = true;
-            if(singleGuessFeedback) singleGuessFeedback.textContent = "Esperando turno...";
+            if (singleGuessFeedback && (statusChanged || (!isMyTurnNow && wasMyTurnBefore))) {
+                 singleGuessFeedback.textContent = "Esperando turno...";
+                 singleGuessFeedback.classList.remove('success-highlight', 'error-text');
+            }
         }
     }
 
-    // Limpiar feedback de adivinanza si cambia el turno
-    if (isMyTurnNow && !wasMyTurnBefore && singleGuessFeedback) {
-         singleGuessFeedback.textContent = "";
-         if (guessSingleWeightInput) guessSingleWeightInput.value = ""; // Limpiar input
-         if (guessSingleColorSelect) guessSingleColorSelect.value = ""; // Deseleccionar
+    // Limpiar feedback de adivinanza Fase 1 si cambia el turno o estado
+    if (guessOneFeedback && ((!isMyTurnNow && wasMyTurnBefore) || (statusChanged && gameState.status !== 'playing'))) {
+         guessOneFeedback.textContent = "";
+         guessOneFeedback.classList.remove("error-text", "success-highlight");
     }
 }
 
-/** Establece estado de carga en botón (sin cambios) */
+/** Establece estado de carga en botón */
 function setLoadingState(button, isLoading, loadingText = '') {
      if (!button) return; if (isLoading) { button.disabled = true; button.dataset.originalContent = button.innerHTML; button.innerHTML = `<span class="spinner" role="status" aria-hidden="true"><i class="fas fa-spinner fa-spin"></i></span> ${loadingText || ''}`; button.classList.add('loading'); } else { button.disabled = false; if (button.dataset.originalContent) { button.innerHTML = button.dataset.originalContent; } button.classList.remove('loading'); delete button.dataset.originalContent; }
 }
@@ -667,7 +725,7 @@ function setLoadingState(button, isLoading, loadingText = '') {
 
 // --- Event Listeners de Controles del Cliente ---
 
-// Navegación inicial y formularios (sin cambios)
+// Navegación inicial y formularios
 createBtn?.addEventListener('click', () => showScreen(screens.create));
 joinBtn?.addEventListener('click', () => showScreen(screens.join));
 backFromCreateBtn?.addEventListener('click', () => showScreen(screens.welcome));
@@ -700,9 +758,8 @@ startGameBtn?.addEventListener('click', () => {
 // Colocar Minerales Seleccionados (Fase 1)
 placeSelectedBtn?.addEventListener('click', () => {
     const count = selectedMineralInstanceIds.length;
-    // Doble chequeo: Botón debería estar deshabilitado si no es válido, pero verificar de nuevo
     if (placeSelectedBtn.disabled || count < 2 || count % 2 !== 0) {
-        updatePlacementControls(); // Actualizar UI por si acaso
+        updatePlacementControls();
         return;
     }
 
@@ -714,9 +771,9 @@ placeSelectedBtn?.addEventListener('click', () => {
     console.log("CLIENT LOG: Emitiendo 'placeMinerals':", placements);
     setLoadingState(placeSelectedBtn, true);
     if (cancelPlacementBtn) cancelPlacementBtn.disabled = true;
-    myInventoryContainer?.querySelectorAll('.inventory-item').forEach(btn => btn.disabled = true); // Deshabilitar inventario
+    if (submitGuessOneBtn) submitGuessOneBtn.disabled = true; // Deshabilitar también adivinanza
+    myInventoryContainer?.querySelectorAll('.inventory-item').forEach(btn => btn.disabled = true);
     socket.emit('placeMinerals', { gameId, playerId, placements });
-    // La selección se limpiará visualmente en la próxima actualización de gameState
 });
 
 // Limpiar Selección de Minerales (Fase 1)
@@ -727,61 +784,41 @@ cancelPlacementBtn?.addEventListener('click', () => {
     updatePlacementControls();
 });
 
-// NUEVO: Abrir Modal para Adivinar Todo (Fase 1)
-guessAllPhase1Btn?.addEventListener('click', () => {
-    if (gameState?.myTurn && gameState?.status === 'playing') {
-        // Limpiar inputs y feedback anterior antes de mostrar
-        Object.values(guessAllInputs).forEach(input => { if (input) input.value = ''; });
-        if (guessAllFeedback) {
-             guessAllFeedback.textContent = '';
-             guessAllFeedback.classList.add('hidden');
-        }
-        showModal(guessAllPhase1Modal);
+// REMOVED Listener para abrir Modal Adivinar Todo
+
+// REMOVED Listener para enviar Adivinanza Completa
+
+// NUEVO: Enviar Adivinanza Individual (Fase 1)
+submitGuessOneBtn?.addEventListener('click', () => {
+    if (submitGuessOneBtn.disabled || !gameState || gameState.status !== 'playing' || !gameState.myTurn) return;
+
+    const color = guessOneColorSelect?.value;
+    const weightStr = guessOneWeightInput?.value.trim();
+    const weightNum = parseInt(weightStr);
+
+    // Validaciones básicas de cliente
+    if (!color) {
+        showNotification("Selecciona un color para adivinar.", "Color Faltante");
+        guessOneColorSelect?.focus();
+        return;
     }
-});
+    if (weightStr === '' || isNaN(weightNum) || weightNum < MIN_WEIGHT || weightNum > MAX_WEIGHT) {
+        showNotification(`Ingresa un peso válido (${MIN_WEIGHT}-${MAX_WEIGHT}).`, "Peso Inválido");
+        guessOneWeightInput?.focus();
+        return;
+    }
 
-// NUEVO: Enviar Adivinanza Completa (Fase 1)
-guessAllPhase1Form?.addEventListener('submit', (e) => {
-     e.preventDefault();
-     if (!gameState || !playerId || !gameId || !gameState.myTurn || gameState.status !== 'playing') return;
+    console.log(`CLIENT LOG: Emitiendo 'guessSingleWeightPhase1': ${color} = ${weightNum}`);
+    setLoadingState(submitGuessOneBtn, true, '...'); // Estado de carga pequeño
+    guessOneColorSelect.disabled = true; // Deshabilitar mientras se envía
+    guessOneWeightInput.disabled = true;
 
-     const guesses = {};
-     let isValid = true;
-     let firstInvalidInput = null;
-
-     for (const type of MINERAL_TYPES) {
-          const input = guessAllInputs[type];
-          const valueStr = input?.value.trim();
-          const valueNum = parseInt(valueStr);
-
-          if (!input || valueStr === '' || isNaN(valueNum) || valueNum < MIN_WEIGHT || valueNum > MAX_WEIGHT) {
-               isValid = false;
-               input?.classList.add('input-error');
-               if (!firstInvalidInput) firstInvalidInput = input;
-          } else {
-               input.classList.remove('input-error');
-               guesses[type] = valueNum; // Guardar como número
-          }
-     }
-
-     if (isValid) {
-          if (guessAllFeedback) {
-               guessAllFeedback.textContent = '';
-               guessAllFeedback.classList.add('hidden');
-          }
-          console.log("CLIENT LOG: Emitiendo 'guessAllWeightsPhase1':", guesses);
-          setLoadingState(submitGuessAllBtn, true, 'Enviando...');
-          // Deshabilitar inputs mientras se envía
-          Object.values(guessAllInputs).forEach(input => { if (input) input.disabled = true; });
-          socket.emit('guessAllWeightsPhase1', { gameId, playerId, guesses });
-          hideModal(guessAllPhase1Modal); // Ocultar modal al enviar
-     } else {
-          if (guessAllFeedback) {
-               guessAllFeedback.textContent = `Ingresa pesos válidos (${MIN_WEIGHT}-${MAX_WEIGHT}) para todos los minerales.`;
-               guessAllFeedback.classList.remove('hidden');
-          }
-          firstInvalidInput?.focus();
-     }
+    socket.emit('guessSingleWeightPhase1', {
+        gameId: gameId,
+        playerId: playerId,
+        guessedColor: color,
+        guessedWeight: weightNum
+    });
 });
 
 
@@ -789,7 +826,7 @@ guessAllPhase1Form?.addEventListener('submit', (e) => {
 voteYesBtn?.addEventListener('click', () => {
     if (voteYesBtn.disabled) return;
     console.log("CLIENT LOG: Votando SÍ");
-    voteYesBtn.disabled = true; // Deshabilitar ambos al votar
+    voteYesBtn.disabled = true;
     voteNoBtn.disabled = true;
     if(voteStatusModal) voteStatusModal.textContent = "Enviando voto...";
     socket.emit('castVote', { gameId, playerId, vote: 'yes' });
@@ -797,7 +834,7 @@ voteYesBtn?.addEventListener('click', () => {
 voteNoBtn?.addEventListener('click', () => {
     if (voteNoBtn.disabled) return;
     console.log("CLIENT LOG: Votando NO");
-    voteYesBtn.disabled = true; // Deshabilitar ambos al votar
+    voteYesBtn.disabled = true;
     voteNoBtn.disabled = true;
     if(voteStatusModal) voteStatusModal.textContent = "Enviando voto...";
     socket.emit('castVote', { gameId, playerId, vote: 'no' });
@@ -818,8 +855,7 @@ guessSingleWeightBtn?.addEventListener('click', () => {
 
     console.log(`CLIENT LOG: Emitiendo 'guessSingleWeight': ${color} = ${weightGuess}`);
     if(singleGuessFeedback) singleGuessFeedback.textContent = `Intentando ${color}...`;
-    // Deshabilitar botón mientras procesa?
-    guessSingleWeightBtn.disabled = true;
+    guessSingleWeightBtn.disabled = true; // Deshabilitar mientras procesa
     socket.emit('guessSingleWeight', { gameId, playerId, color, weightGuess });
 });
 
@@ -827,8 +863,7 @@ guessSingleWeightBtn?.addEventListener('click', () => {
 passTurnBtn?.addEventListener('click', () => {
     if (passTurnBtn.disabled) return;
     console.log("CLIENT LOG: Emitiendo 'passTurn'");
-    passTurnBtn.disabled = true; // Deshabilitar mientras procesa
-    setLoadingState(passTurnBtn, true, 'Pasando...'); // Añadir estado de carga
+    setLoadingState(passTurnBtn, true, 'Pasando...');
     socket.emit('passTurn', { gameId, playerId });
 });
 
@@ -841,14 +876,9 @@ playAgainBtn?.addEventListener('click', () => {
 document.querySelectorAll('.modal .close-btn, .modal .modal-cancel-btn').forEach(btn => {
     btn.addEventListener('click', (event) => {
         const modal = event.target.closest('.modal');
-        // No permitir cerrar modal de votación, pero sí los demás
-        if (modal && modal !== votingModal) {
+        if (modal && modal !== votingModal) { // No permitir cerrar modal de votación
              hideModal(modal);
-             // Reactivar botón de submit del modal de adivinar todo si se cerró manualmente
-             if (modal === guessAllPhase1Modal) {
-                 setLoadingState(submitGuessAllBtn, false);
-                 Object.values(guessAllInputs).forEach(input => { if (input) input.disabled = false; });
-             }
+             // REMOVED Resetear botón submit modal adivinar todo
         }
     });
 });
@@ -857,7 +887,7 @@ document.querySelectorAll('.modal .close-btn, .modal .modal-cancel-btn').forEach
 // --- Event Listeners de Socket.IO ---
 
 socket.on('connect', () => console.log('CLIENT LOG: Conectado:', socket.id));
-socket.on('disconnect', (reason) => { console.warn('CLIENT LOG: Desconectado:', reason); showNotification(`Desconexión: ${reason}. Recarga para reconectar.`, "Desconectado"); /* Deshabilitar UI? */ });
+socket.on('disconnect', (reason) => { console.warn('CLIENT LOG: Desconectado:', reason); showNotification(`Desconexión: ${reason}. Recarga para reconectar.`, "Desconectado"); });
 socket.on('error', (data) => {
      console.error('SERVER ERROR:', data.message);
      showNotification(`Error: ${data.message || 'Error desconocido.'}`, 'Error del Servidor');
@@ -865,23 +895,31 @@ socket.on('error', (data) => {
      if (placeSelectedBtn?.classList.contains('loading')) setLoadingState(placeSelectedBtn, false);
      if (passTurnBtn?.classList.contains('loading')) setLoadingState(passTurnBtn, false);
      if (startGameBtn?.classList.contains('loading')) setLoadingState(startGameBtn, false);
-     if (submitGuessAllBtn?.classList.contains('loading')) { // NUEVO: Resetear botón modal Fase 1
-         setLoadingState(submitGuessAllBtn, false);
-         Object.values(guessAllInputs).forEach(input => { if (input) input.disabled = false; }); // Reactivar inputs
+     if (submitGuessOneBtn?.classList.contains('loading')) { // NUEVO: Resetear botón Fase 1 Adivinar Uno
+         setLoadingState(submitGuessOneBtn, false);
+         // Volver a habilitar controles de adivinanza si corresponde
+         populateGuessOneColorSelect(); // Esto habilitará/deshabilitará según estado
      }
 
      // Habilitar controles de nuevo si corresponde
      if (gameState?.myTurn && (gameState.status === 'playing' || gameState.status === 'guessing_phase') && passTurnBtn) passTurnBtn.disabled = false;
-     if (gameState?.myTurn && gameState.status === 'playing' && placeSelectedBtn) {
-        // Habilitar solo si la selección es válida (par y >= 2)
+     if (gameState?.myTurn && gameState.status === 'playing') {
+        // Habilitar colocación si la selección es válida
          const count = selectedMineralInstanceIds.length;
-         placeSelectedBtn.disabled = !(count >= 2 && count % 2 === 0);
+         if(placeSelectedBtn) placeSelectedBtn.disabled = !(count >= 2 && count % 2 === 0);
+         if(cancelPlacementBtn) cancelPlacementBtn.disabled = false;
+         // Habilitar inventario si falló colocar
+         myInventoryContainer?.querySelectorAll('.inventory-item').forEach(btn => btn.disabled = false);
+         // Re-habilitar controles de adivinanza Fase 1
+         populateGuessOneColorSelect();
      }
-     if (gameState?.myTurn && gameState.status === 'playing' && cancelPlacementBtn) cancelPlacementBtn.disabled = false;
-     if (gameState?.myTurn && gameState.status === 'playing' && myInventoryContainer) {
-         myInventoryContainer.querySelectorAll('.inventory-item').forEach(btn => btn.disabled = false); // Habilitar inventario si falló colocar
+     if (gameState?.myTurn && gameState.status === 'guessing_phase') {
+          // Re-habilitar controles Fase 2
+          populateGuessColorSelectFase2();
+          const canGuessF2 = gameState.myPhase2AttemptsLeft > 0 && guessSingleColorSelect && guessSingleColorSelect.options.length > 1;
+          if(guessSingleWeightInput) guessSingleWeightInput.disabled = !canGuessF2;
+          if(guessSingleWeightBtn) guessSingleWeightBtn.disabled = !canGuessF2;
      }
-
 
 });
 
@@ -889,11 +927,11 @@ socket.on('error', (data) => {
 socket.on('playerListUpdated', (data) => {
     console.log("CLIENT LOG: Recibido playerListUpdated:", data);
     updateWaitingList(data.players);
-    if (isHost && startGameBtn && currentScreen === screens.waiting) { // Solo actualizar botón si estamos en espera
+    if (isHost && startGameBtn && currentScreen === screens.waiting) {
         const activeCount = data.players?.filter(p => p.isActive).length ?? 0;
         startGameBtn.disabled = activeCount < 2;
         startGameBtn.title = activeCount < 2 ? "Se necesitan al menos 2 jugadores activos" : "Iniciar el juego";
-        if (activeCount >= 2 && startGameBtn.classList.contains('loading')) { setLoadingState(startGameBtn, false); } // Resetear si se habilita mientras carga
+        if (activeCount >= 2 && startGameBtn.classList.contains('loading')) { setLoadingState(startGameBtn, false); }
     }
 });
 
@@ -909,10 +947,13 @@ function updateWaitingList(players) {
          return;
     }
 
+    // Obtener el hostId del gameState si ya existe, sino asumir que el primer jugador es el host temporalmente
+    const currentHostId = gameState?.hostId || players.find(p => p.turnOrder === 1)?.id;
+
     players.sort((a,b) => a.turnOrder - b.turnOrder).forEach(p => {
         const li = document.createElement('li');
         li.dataset.playerId = p.id;
-        li.innerHTML = `<span class="player-order">${p.turnOrder}.</span> ${p.name} ${p.id === playerId ? '<span class="you-tag">(Tú)</span>' : ''} ${p.id === gameState?.hostId || (isHost && p.turnOrder === 1) ? '<span class="host-tag">(Host)</span>' : ''} ${!p.isActive ? '<span class="status-tag inactive-tag">(Desc.)</span>': ''}`;
+        li.innerHTML = `<span class="player-order">${p.turnOrder}.</span> ${p.name} ${p.id === playerId ? '<span class="you-tag">(Tú)</span>' : ''} ${p.id === currentHostId ? '<span class="host-tag">(Host)</span>' : ''} ${!p.isActive ? '<span class="status-tag inactive-tag">(Desc.)</span>': ''}`;
         fragment.appendChild(li);
     });
     waitPlayersList.innerHTML = '';
@@ -925,11 +966,11 @@ socket.on('gameStarted', ({ gameState: receivedGameState }) => {
     console.log("CLIENT LOG: Recibido 'gameStarted'.");
     if (isHost && startGameBtn && startGameBtn.classList.contains('loading')) { setLoadingState(startGameBtn, false); }
     if (receivedGameState) {
-        gameId = receivedGameState.gameId; // Asegurar que tenemos el ID
-        playerId = receivedGameState.myPlayerId; // Asegurar nuestro ID
-        isHost = receivedGameState.hostId === playerId; // Reconfirmar si somos host
+        gameId = receivedGameState.gameId;
+        playerId = receivedGameState.myPlayerId;
+        isHost = receivedGameState.hostId === playerId;
         gameState = receivedGameState;
-        showScreen(screens.game); // updateGameUI se llama dentro
+        showScreen(screens.game);
     } else {
         showNotification("Error al recibir estado inicial.", "Error al Iniciar");
     }
@@ -939,27 +980,23 @@ socket.on('gameStateUpdated', ({ gameState: receivedGameState }) => {
     console.log('--- Received gameStateUpdated ---');
     if (!receivedGameState) { console.error("CLIENT ERROR: Estado nulo en gameStateUpdated!"); return; }
 
-    // Resetear botones de carga si aplica
+    // Resetear botones de carga generales
     if (placeSelectedBtn?.classList.contains('loading')) setLoadingState(placeSelectedBtn, false);
     if (passTurnBtn?.classList.contains('loading')) setLoadingState(passTurnBtn, false);
+    // No resetear botón de adivinanza Fase 1 aquí, se hace en su handler o error
+    // Resetear botón adivinanza Fase 2 si ya no es mi turno
     if (guessSingleWeightBtn?.disabled && !receivedGameState.myTurn) guessSingleWeightBtn.disabled = false;
-    if (submitGuessAllBtn?.classList.contains('loading')) { // Resetear botón modal Fase 1
-        setLoadingState(submitGuessAllBtn, false);
-        Object.values(guessAllInputs).forEach(input => { if (input) input.disabled = false; });
-    }
-
 
     // Si el estado es 'playing', 'guessing_phase' o 'voting' y estamos en la pantalla correcta
     if ((receivedGameState.status === 'playing' || receivedGameState.status === 'guessing_phase' || receivedGameState.status === 'voting') && currentScreen !== screens.game) {
         console.log(`CLIENT LOG: gameStateUpdated recibido (${receivedGameState.status}), cambiando a pantalla de juego.`);
-        gameState = receivedGameState; // Guardar estado ANTES de cambiar pantalla
-        showScreen(screens.game); // Cambia y luego actualiza (updateGameUI se llama dentro de showScreen)
+        gameState = receivedGameState;
+        showScreen(screens.game);
     } else if (currentScreen === screens.game) {
-        updateGameUI(receivedGameState); // Actualiza la pantalla actual
+        updateGameUI(receivedGameState);
     } else if (currentScreen === screens.waiting && receivedGameState.status === 'waiting') {
-         // Actualizar lista de jugadores en espera si gameState cambia ahí
          updateWaitingList(receivedGameState.playersPublicInfo);
-         gameState = receivedGameState; // Guardar por si acaso
+         gameState = receivedGameState;
     }
      else {
          console.log(`CLIENT LOG: gameStateUpdated ignorado o manejado por cambio de pantalla (Pantalla: ${currentScreen?.id}, Estado: ${receivedGameState.status})`);
@@ -970,57 +1007,61 @@ socket.on('gameStateUpdated', ({ gameState: receivedGameState }) => {
 // Voto recibido de otro jugador
 socket.on('voteReceived', ({ playerId: voterId, playerName: voterName }) => {
     console.log(`CLIENT LOG: Voto recibido de ${voterName}`);
-    // Actualizar UI del modal de votación si está abierto
     if (votingModal.style.display === 'flex' && voteStatusModal && gameState) {
-        // Intentar predecir el nuevo conteo o usar el estado local actual
-        const votesReceived = gameState.votingState?.receivedVotes ?? 0; // Usar estado local
+        const votesReceived = gameState.votingState?.receivedVotes ?? 0;
         const votesRequired = gameState.votingState?.requiredVotes ?? gameState.playersPublicInfo?.filter(p => p.isActive).length ?? 0;
-        // Mostrar +1 si el voto recibido no es el mío
-        const displayReceived = (voterId !== playerId) ? votesReceived + 1 : votesReceived;
+        // Mostrar +1 si el voto recibido no es el mío y el estado aún no se actualizó formalmente
+        const displayReceived = (voterId !== playerId && gameState.votingState?.myVote !== undefined) ? votesReceived + 1 : gameState.votingState?.receivedVotes ?? votesReceived;
         voteStatusModal.textContent = `Voto de ${voterName} recibido (${displayReceived}/${votesRequired}). Esperando a los demás...`;
     }
 });
 
-// NUEVO: Resultado de Adivinanza Parcial Fase 1
-socket.on('phase1GuessResult', ({ correctCount, prizeWon }) => {
-    console.log(`CLIENT LOG: Resultado Adivinanza Fase 1: ${correctCount}/5 correctos, Premio: ${prizeWon}`);
-    // Mostrar notificación con el resultado
-    let message = `Intentaste adivinar todos los pesos. Acertaste ${correctCount} de 5.`;
-    if (prizeWon > 0) {
-        message += ` Ganaste ${formatHackerBytes(prizeWon)} Hacker Bytes.`;
-    } else {
-        message += ` No ganaste premio por esta acción.`;
-    }
-    message += " El turno pasará al siguiente jugador.";
-    showNotification(message, "Resultado Adivinanza Fase 1");
+// REMOVED listener 'phase1GuessResult'
 
-    // Resetear estado de carga del botón del modal si estaba activo
-    if (submitGuessAllBtn?.classList.contains('loading')) {
-        setLoadingState(submitGuessAllBtn, false);
-        Object.values(guessAllInputs).forEach(input => { if (input) input.disabled = false; });
+// NUEVO: Resultado de Adivinanza Individual (Fase 1)
+socket.on('singleGuessPhase1Result', ({ success, color, weight, message }) => {
+    console.log(`CLIENT LOG: Resultado Adivinanza Fase 1 (${color}): ${message}`);
+
+    // Resetear estado loading del botón
+    if (submitGuessOneBtn?.classList.contains('loading')) {
+        setLoadingState(submitGuessOneBtn, false);
+    }
+
+    if (guessOneFeedback) {
+        guessOneFeedback.textContent = message;
+        guessOneFeedback.classList.toggle('success-highlight', success);
+        guessOneFeedback.classList.toggle('error-text', !success);
+    }
+
+    // Si fue correcto, limpiar input y actualizar select
+    if (success) {
+        if (guessOneWeightInput) guessOneWeightInput.value = "";
+        populateGuessOneColorSelect(); // Repoblar para quitar el color y re-evaluar estado disabled
+    } else {
+        // Si fue incorrecto, solo re-habilitar controles para permitir otro intento si es mi turno
+        populateGuessOneColorSelect(); // Esto habilita/deshabilita según estado y turno
     }
 });
 
 
 // Resultado de adivinanza individual (Fase 2)
 socket.on('singleGuessResult', ({ playerId: guesserId, playerName, color, weightGuess, correct, justGuessed, message, newTotalGuesses }) => {
-    console.log(`CLIENT LOG: Resultado adivinanza individual (${color}): ${message}`);
+    console.log(`CLIENT LOG: Resultado adivinanza individual Fase 2 (${color}): ${message}`);
 
-     // Mostrar feedback siempre, no solo en mi turno, para ver qué pasó
      if (singleGuessFeedback && currentScreen === screens.game) {
          singleGuessFeedback.textContent = message;
          singleGuessFeedback.classList.toggle('success-highlight', correct && justGuessed);
          singleGuessFeedback.classList.toggle('error-text', !correct);
-         // Limpiar input y repoblar select si fui YO quien adivinó
+
          if (guesserId === playerId) {
               if(guessSingleWeightInput) guessSingleWeightInput.value = "";
-              populateGuessColorSelect(); // Repoblar para quitar el color intentado
-              if (guessSingleColorSelect) guessSingleColorSelect.value = ""; // Deseleccionar
-               // Reactivar botón si aún quedan intentos
-              if(guessSingleWeightBtn && gameState?.myPhase2AttemptsLeft > 0) guessSingleWeightBtn.disabled = false;
+              populateGuessColorSelectFase2();
+              if (guessSingleColorSelect) guessSingleColorSelect.value = "";
+              // Re-habilitar botón si aún quedan intentos y colores
+              const canGuessF2 = gameState?.myPhase2AttemptsLeft > 0 && guessSingleColorSelect && guessSingleColorSelect.options.length > 1;
+              if(guessSingleWeightBtn) guessSingleWeightBtn.disabled = !canGuessF2;
          }
      }
-    // Actualizar contador total si hubo acierto nuevo (gameStateUpdated lo hará formalmente)
      if(correct && justGuessed && phase2CorrectTotal && newTotalGuesses !== undefined) {
          phase2CorrectTotal.textContent = `${newTotalGuesses} / ${PHASE2_TARGET_CORRECT_GUESSES}`;
      }
@@ -1030,10 +1071,9 @@ socket.on('singleGuessResult', ({ playerId: guesserId, playerName, color, weight
 socket.on('prizePotUpdated', ({ newPrizePot }) => {
     console.log(`CLIENT LOG: Premio actualizado a ${newPrizePot}`);
     if (gameState) gameState.currentPrizePot = newPrizePot; // Actualizar estado local
-    const potDisplay = currentPrizePotDisplay || prizeAmountDisplay; // Usar el display correcto
+    const potDisplay = currentPrizePotDisplay || prizeAmountDisplay;
     if (potDisplay) {
         potDisplay.textContent = formatHackerBytes(newPrizePot);
-        // Animar cambio
         anime({ targets: potDisplay, scale: [1.15, 1], duration: 600, easing: 'easeOutElastic(1, .7)' });
     }
 });
@@ -1043,24 +1083,21 @@ socket.on('prizePotUpdated', ({ newPrizePot }) => {
 socket.on('gameOver', ({ gameState: finalGameState, actualWeights }) => {
     console.log("CLIENT LOG: Recibido 'gameOver'. Status:", finalGameState?.status);
 
-    // Limpiar estados/modales activos
     if (votingModal && votingModal.style.display !== 'none') hideModal(votingModal);
-    if (guessAllPhase1Modal && guessAllPhase1Modal.style.display !== 'none') hideModal(guessAllPhase1Modal); // NUEVO: Ocultar modal Fase 1
+    // if (guessAllPhase1Modal && guessAllPhase1Modal.style.display !== 'none') hideModal(guessAllPhase1Modal); // REMOVED
 
-    // Resetear botones loading si aplica
     if (placeSelectedBtn?.classList.contains('loading')) setLoadingState(placeSelectedBtn, false);
     if (passTurnBtn?.classList.contains('loading')) setLoadingState(passTurnBtn, false);
     if (startGameBtn?.classList.contains('loading')) setLoadingState(startGameBtn, false);
-    if (submitGuessAllBtn?.classList.contains('loading')) setLoadingState(submitGuessAllBtn, false); // NUEVO: Resetear
+    if (submitGuessOneBtn?.classList.contains('loading')) setLoadingState(submitGuessOneBtn, false); // NUEVO
 
 
     if (finalGameState) {
-        gameState = finalGameState; // Guardar estado final
+        gameState = finalGameState;
 
         let titleIcon = 'fa-flag-checkered';
         let resultMsg = 'Juego Terminado.';
         let winnerText = 'Ganadores: Ninguno';
-        // El premio se toma directamente de mis hackerBytes al final
         const myFinalPrize = finalGameState.myHackerBytes || 0;
 
         switch(finalGameState.status) {
@@ -1069,11 +1106,11 @@ socket.on('gameOver', ({ gameState: finalGameState, actualWeights }) => {
                 resultMsg = `¡${finalGameState.balancerPlayer?.name || 'Alguien'} equilibró y el equipo decidió terminar!`;
                 winnerText = `🏆 Ganador(es): ¡Equipo Activo! (Inició ${finalGameState.balancerPlayer?.name || '?'})`;
                 break;
-            case 'finished_phase1_guess_win': // NUEVO ESTADO
-                titleIcon = 'fa-bolt';
-                resultMsg = `¡${finalGameState.successfulGuesser?.name || 'Alguien'} adivinó TODOS los pesos en Fase 1!`;
-                winnerText = `🏆 Ganador(es): ¡${finalGameState.successfulGuesser?.name || '?'}!`;
-                break;
+            // case 'finished_phase1_guess_win': // REMOVED
+            //     titleIcon = 'fa-bolt';
+            //     resultMsg = `¡${finalGameState.successfulGuesser?.name || 'Alguien'} adivinó TODOS los pesos en Fase 1!`;
+            //     winnerText = `🏆 Ganador(es): ¡${finalGameState.successfulGuesser?.name || '?'}!`;
+            //     break;
             case 'finished_phase2_win':
                 titleIcon = 'fa-trophy';
                 resultMsg = `¡El equipo superó la Fase 2 con ${finalGameState.phase2CorrectGuessesTotal} aciertos!`;
@@ -1094,9 +1131,9 @@ socket.on('gameOver', ({ gameState: finalGameState, actualWeights }) => {
                  resultMsg = 'El juego terminó porque no quedaron jugadores activos.';
                  winnerText = 'Ganadores: Ninguno';
                  break;
-            case 'finished_failure': // Estado genérico
+            case 'finished_failure':
                  titleIcon = 'fa-exclamation-circle';
-                 resultMsg = 'El juego terminó sin un ganador claro.';
+                 resultMsg = 'El juego terminó sin un ganador claro (posiblemente nadie pudo colocar/adivinar).';
                  winnerText = 'Ganadores: Ninguno';
                  break;
             default:
@@ -1107,7 +1144,6 @@ socket.on('gameOver', ({ gameState: finalGameState, actualWeights }) => {
         if (finalResultMessage) finalResultMessage.textContent = resultMsg;
         if (finalWinners) finalWinners.textContent = winnerText;
 
-        // Mostrar premio personal ganado
         if (finalPrizeWon && finalPrizeAmount) {
              finalPrizeAmount.textContent = `${formatHackerBytes(myFinalPrize)} Hacker Bytes`;
              finalPrizeWon.classList.toggle('hidden', myFinalPrize <= 0);
@@ -1116,7 +1152,6 @@ socket.on('gameOver', ({ gameState: finalGameState, actualWeights }) => {
         }
 
 
-        // Mostrar pesos reales
         if (finalActualWeights && actualWeights) {
             finalActualWeights.innerHTML = ''; const weightItems = [];
             MINERAL_TYPES.sort().forEach(type => {
@@ -1139,17 +1174,14 @@ socket.on('gameOver', ({ gameState: finalGameState, actualWeights }) => {
 // Notificación de jugador desconectado
 socket.on('playerDisconnected', ({ playerId: disconnectedPlayerId, playerName }) => {
     console.log(`CLIENT LOG: ${playerName} se desconectó.`);
-    // Evitar mostrar notificación si soy yo quien desconecta
     if (playerId !== disconnectedPlayerId) {
         showNotification(`${playerName} se ha desconectado.`, "Jugador Desconectado");
     }
-    // La UI se actualizará con el próximo gameStateUpdated o playerListUpdated
 });
 
 // Notificación de fin por desconexión en voto
 socket.on('gameEndedDueToVoteDisconnect', ({ playerName }) => {
      showNotification(`El juego terminó porque ${playerName} se desconectó durante la votación.`, "Fin del Juego");
-     // La pantalla cambiará con 'gameOver'
 });
 
 

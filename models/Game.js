@@ -30,16 +30,16 @@ const GameSchema = new mongoose.Schema({
         type: String,
         enum: [
             'waiting',                 // Esperando jugadores
-            'playing',                 // Fase 1: Colocar minerales / Adivinanza Opcional
+            'playing',                 // Fase 1: Colocar minerales / Adivinanza individual opcional
             'voting',                  // Fase de votación para continuar
-            'guessing_phase',          // Fase 2: Adivinanza individual
+            'guessing_phase',          // Fase 2: Adivinanza individual obligatoria
             'finished_balance_win',    // Ganó por balancear y votó NO/empate
-            'finished_phase1_guess_win',// Ganó adivinando todo en Fase 1 (NUEVO)
+            // 'finished_phase1_guess_win', // REMOVED - Ya no es posible
             'finished_phase2_win',     // Ganó Fase 2 (>= 3 aciertos)
             'finished_phase2_loss',    // Perdió Fase 2 (< 3 aciertos)
             'finished_disconnect_vote',// Alguien desconectó en votación
             'finished_disconnect_game',// Juego terminó por desconexiones generales
-            'finished_failure'         // Estado genérico si nadie balanceó/ganó (puede necesitar refinar)
+            'finished_failure'         // Estado genérico si nadie balanceó/ganó
         ],
         default: 'waiting'
     },
@@ -90,6 +90,11 @@ const GameSchema = new mongoose.Schema({
         requiredVotes: { type: Number, default: 0 },
         receivedVotes: { type: Number, default: 0 }
     },
+    phase1CorrectlyGuessedWeights: { // NUEVO: Pesos adivinados en Fase 1
+        type: Map,
+        of: Number, // Almacena: { 'Color': pesoCorrecto }
+        default: {}
+    },
     phase2RoundsPlayed: { type: Number, default: 0 }, // Contador de rondas en Fase 2
     phase2CorrectGuessesTotal: { type: Number, default: 0 }, // Contador global de aciertos únicos en Fase 2
     phase2CorrectGuessesMap: { // Para asegurar que cada color se cuenta solo una vez
@@ -97,7 +102,7 @@ const GameSchema = new mongoose.Schema({
         of: mongoose.Schema.Types.ObjectId, // { 'Color': playerId }
         default: {}
     },
-    successfulGuesser: { // Quién ganó (balance_win, phase1_guess_win) o equipo (phase2_win - puede ser null)
+    successfulGuesser: { // Quién ganó (balance_win) o equipo (phase2_win - puede ser null)
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Player',
         default: null
