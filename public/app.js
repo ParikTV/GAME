@@ -11,7 +11,7 @@ const PHASE2_TARGET_CORRECT_GUESSES = 3;
 const PHASE2_GUESS_ATTEMPTS_PER_TURN = 2;
 const MINERAL_TYPES = ['Rojo', 'Amarillo', 'Verde', 'Azul', 'Purpura'];
 const GUESSABLE_MINERALS_COUNT = 4; // R, G, B, P
-const MAX_INCORRECT_GUESSES_PER_COLOR_PHASE1 = 2; // <<< NUEVA CONSTANTE CLIENTE
+const MAX_INCORRECT_GUESSES_PER_COLOR_PHASE1 = 2;
 
 // --- Selectores DOM (Actualizados) ---
 const screens = {
@@ -62,6 +62,7 @@ const knownInfoText = document.getElementById('known-info-text');
 const prizeAmountDisplay = document.getElementById('prize-amount-display');
 const prizeConditionDisplay = document.getElementById('prize-condition-display');
 const myHackerBytesDisplay = document.getElementById('my-hacker-bytes-display');
+const mineralsPlacedStatusEl = document.getElementById('minerals-placed-status'); // *** NUEVO: Selector para estado de minerales ***
 
 // Displays Fase 2
 const phase2InfoCard = document.getElementById('phase2-info-card');
@@ -133,7 +134,6 @@ let selectedMineralInstanceIds = [];
 
 /** Muestra una pantalla con animación */
 function showScreen(screenElement) {
-    // ... (Sin cambios en esta función) ...
     if (!screenElement || currentScreen === screenElement) return;
     console.log(`CLIENT LOG: Switching screen to: ${screenElement.id}`);
     const outgoingScreen = currentScreen; currentScreen = screenElement;
@@ -156,7 +156,6 @@ function showScreen(screenElement) {
 
 /** Muestra un modal con animación */
 function showModal(modalElement) {
-    // ... (Sin cambios en esta función) ...
     if (!modalElement || modalElement.style.display === 'flex') return;
     const modalContent = modalElement.querySelector('.modal-content');
     anime.set(modalElement, { display: 'flex', opacity: 0 }); anime.set(modalContent, { opacity: 0, scale: 0.8, translateY: -20 });
@@ -166,7 +165,6 @@ function showModal(modalElement) {
 
 /** Oculta un modal con animación */
 function hideModal(modalElement) {
-    // ... (Sin cambios en esta función) ...
     if (!modalElement || modalElement.style.display === 'none') return;
     const modalContent = modalElement.querySelector('.modal-content');
     anime({ targets: modalContent, opacity: 0, scale: 0.8, translateY: -20, duration: 300, easing: 'easeInQuad' });
@@ -175,7 +173,6 @@ function hideModal(modalElement) {
 
 /** Muestra una notificación */
 function showNotification(message, title = 'Notificación') {
-    // ... (Sin cambios en esta función) ...
     const notificationTitleEl = document.getElementById('notification-title');
     if(notificationTitleEl) notificationTitleEl.innerHTML = `<i class="fas fa-info-circle"></i> ${title}`;
     if(notificationMessage) notificationMessage.textContent = message;
@@ -190,7 +187,6 @@ function formatHackerBytes(amount) { return (typeof amount === 'number') ? amoun
 
 /** Actualiza UNA balanza */
 function updateSingleScaleDisplay(scalePrefix, scaleData) {
-    // ... (Sin cambios en esta función) ...
     if (!scaleData) return;
     const scaleArm = document.getElementById(`${scalePrefix}-scale-arm`);
     const leftPlatform = document.getElementById(`${scalePrefix}-left-platform-visual`);
@@ -206,14 +202,13 @@ function updateSingleScaleDisplay(scalePrefix, scaleData) {
         if (leftPlatform && rightPlatform) { anime({ targets: [leftPlatform, rightPlatform], translateY: (el) => el.classList.contains('left') ? -platformOffsetY : platformOffsetY, duration: 1200, easing: 'easeOutElastic(1, .7)' }); }
     }
     if (scalePrefix === 'main' && mainBalanceStatus) {
-        const isBalanced = gameState?.isMainScaleBalanced ?? false;
+        const isBalanced = gameState?.isMainScaleBalanced ?? false; // Usar el estado calculado enviado por el server
         mainBalanceStatus.textContent = isBalanced ? '(Equilibrada)' : '(Desequilibrada)'; mainBalanceStatus.classList.toggle('balanced', isBalanced); mainBalanceStatus.classList.toggle('unbalanced', !isBalanced);
     }
 }
 
 /** Renderiza materiales en balanza (SOLO TIPO) con animación */
 function renderScaleMaterialsStack(container, materialsList) {
-    // ... (Sin cambios en esta función) ...
     if (!container) return;
     const fragment = document.createDocumentFragment(); const itemsToAnimateEnter = []; const existingElementsMap = new Map();
     container.childNodes.forEach(node => { if (node.nodeType === 1 && node.dataset.instanceId) existingElementsMap.set(node.dataset.instanceId, node); });
@@ -231,13 +226,14 @@ function renderScaleMaterialsStack(container, materialsList) {
 
 /** Renderiza inventario (SOLO TIPO) - FASE 1 */
 function renderPlayerInventory(inventory) {
-    // ... (Sin cambios en esta función) ...
     if (!myInventoryContainer) return;
     const fragment = document.createDocumentFragment(); const currentInventoryMap = new Map();
     myInventoryContainer.childNodes.forEach(node => { if (node.nodeType === 1 && node.dataset.instanceId) currentInventoryMap.set(node.dataset.instanceId, node); });
     const itemsToAnimateEnter = []; const canInteract = gameState?.myTurn && gameState?.status === 'playing' && gameState?.iCanPlaceMinerals;
-    if (!Array.isArray(inventory) || inventory.length === 0) { myInventoryContainer.innerHTML = '<p class="info-text">No te quedan minerales.</p>'; if (myMineralCount) myMineralCount.textContent = '0'; if (cannotPlaceMessage) cannotPlaceMessage.classList.remove('hidden'); selectedMineralInstanceIds = []; updatePlacementControls(); return; }
-    if (cannotPlaceMessage && inventory.length >= 2) cannotPlaceMessage.classList.add('hidden');
+    if (!Array.isArray(inventory) || inventory.length === 0) { myInventoryContainer.innerHTML = '<p class="info-text">Inventario vacío.</p>'; if (myMineralCount) myMineralCount.textContent = '0'; if (cannotPlaceMessage) cannotPlaceMessage.classList.add('hidden'); // Ocultar si puede colocar, no si tiene 0
+         selectedMineralInstanceIds = []; updatePlacementControls(); return; }
+    if (cannotPlaceMessage && inventory.length >= 2) cannotPlaceMessage.classList.remove('hidden');
+    else if (cannotPlaceMessage && inventory.length < 2) cannotPlaceMessage.classList.remove('hidden'); // Asegurarse que se muestre si < 2
     if (myMineralCount) myMineralCount.textContent = inventory.length;
     inventory.forEach(mineral => {
         let button; const instanceId = mineral.instanceId; const typeClass = mineral.type ? mineral.type.toLowerCase() : 'desconocido';
@@ -256,7 +252,6 @@ function renderPlayerInventory(inventory) {
 
 /** Manejador de clic para item de inventario */
 function handleInventoryItemClick(event) {
-    // ... (Sin cambios en esta función) ...
     const button = event.currentTarget; if (button.disabled) return; const id = button.dataset.instanceId; const isSelected = button.classList.toggle('selected-material');
     if (isSelected) { if (!selectedMineralInstanceIds.includes(id)) selectedMineralInstanceIds.push(id); } else { selectedMineralInstanceIds = selectedMineralInstanceIds.filter(selId => selId !== id); }
     anime({ targets: button, scale: isSelected ? [1, 1.08, 1] : [1.08, 1], duration: 300, easing: 'easeOutElastic(1, .8)' });
@@ -265,20 +260,24 @@ function handleInventoryItemClick(event) {
 
 /** Actualiza la sección de controles de colocación (FASE 1) */
 function updatePlacementControls() {
-    // ... (Sin cambios en esta función) ...
     if (!placementControlsSection || !gameState) return;
     const count = selectedMineralInstanceIds.length; const isEven = count > 0 && count % 2 === 0; const hasEnough = count >= 2;
+    // El jugador puede colocar si es su turno, está en fase 'playing', tiene minerales (>0), y la selección es par y >=2
     const canPlaceSelection = gameState.myTurn && gameState.status === 'playing' && gameState.iCanPlaceMinerals && hasEnough && isEven;
+    // Mostrar controles si tiene algo seleccionado, es su turno, está en 'playing' y puede colocar (>=2)
     const shouldShowControls = count > 0 && gameState.myTurn && gameState.status === 'playing' && gameState.iCanPlaceMinerals;
+
     updatePlacementControlsVisibility(shouldShowControls);
-    if (selectedCountSpan) selectedCountSpan.textContent = count; if (placeSelectedBtn) placeSelectedBtn.disabled = !canPlaceSelection;
+
+    if (selectedCountSpan) selectedCountSpan.textContent = count;
+    if (placeSelectedBtn) placeSelectedBtn.disabled = !canPlaceSelection;
     if (placementError) { let errorMsg = ''; if (count > 0 && !hasEnough) { errorMsg = 'Selecciona al menos 2.'; } else if (count > 0 && !isEven) { errorMsg = 'Cantidad PAR (2, 4...).'; } placementError.textContent = errorMsg; placementError.classList.toggle('hidden', errorMsg === ''); }
-    if(targetScaleSelect) targetScaleSelect.disabled = count === 0; if(targetSideSelect) targetSideSelect.disabled = count === 0;
+    if(targetScaleSelect) targetScaleSelect.disabled = count === 0;
+    if(targetSideSelect) targetSideSelect.disabled = count === 0;
 }
 
 /** Controla la visibilidad animada de los controles de colocación */
 function updatePlacementControlsVisibility(shouldShow) {
-    // ... (Sin cambios en esta función) ...
     if (!placementControlsSection) return; const isCurrentlyVisible = placementControlsSection.classList.contains('visible');
     if (shouldShow && !isCurrentlyVisible) {
         placementControlsSection.classList.remove('hidden'); placementControlsSection.classList.add('visible'); const targetHeight = placementControlsSection.scrollHeight;
@@ -290,7 +289,6 @@ function updatePlacementControlsVisibility(shouldShow) {
 
 /** Controla la visibilidad animada de la sección de adivinar uno (Fase 1) */
 function updateGuessOneVisibility(shouldShow) {
-    // ... (Sin cambios en esta función) ...
     if (!phase1GuessOneAction) return; const isCurrentlyVisible = phase1GuessOneAction.classList.contains('visible');
     if (shouldShow && !isCurrentlyVisible) {
         phase1GuessOneAction.classList.remove('hidden'); phase1GuessOneAction.classList.add('visible'); const targetHeight = phase1GuessOneAction.scrollHeight;
@@ -304,7 +302,6 @@ function updateGuessOneVisibility(shouldShow) {
 
 /** Popula el selector de colores para adivinar en Fase 2 (FILTRADO) */
 function populateGuessColorSelectFase2() {
-    // ... (Sin cambios en esta función) ...
     if (!guessSingleColorSelect || !gameState || gameState.status !== 'guessing_phase') return;
     const correctlyGuessedPhase1 = gameState.phase1CorrectlyGuessedWeights ? Object.keys(gameState.phase1CorrectlyGuessedWeights) : [];
     const previouslyAttemptedPhase2 = gameState.myGuessedColorsPhase2 || [];
@@ -324,17 +321,16 @@ function populateGuessOneColorSelect() {
     if (!guessOneColorSelect || !gameState || gameState.status !== 'playing') return;
 
     const correctlyGuessed = gameState.phase1CorrectlyGuessedWeights ? Object.keys(gameState.phase1CorrectlyGuessedWeights) : [];
-    const myIncorrectAttempts = gameState.myPhase1IncorrectGuessAttempts || {}; // Usar el nuevo campo del gameState (es un objeto aquí)
+    const myIncorrectAttempts = gameState.myPhase1IncorrectGuessAttempts || {};
 
-    // Filtrar colores: No 'Amarillo', No ya acertados, No si se alcanzó límite de intentos incorrectos
     const availableColors = MINERAL_TYPES.filter(color =>
         color !== 'Amarillo' &&
         !correctlyGuessed.includes(color) &&
-        (myIncorrectAttempts[color] || 0) < MAX_INCORRECT_GUESSES_PER_COLOR_PHASE1 // <<< NUEVO FILTRO
+        (myIncorrectAttempts[color] || 0) < MAX_INCORRECT_GUESSES_PER_COLOR_PHASE1
     );
 
     const currentSelection = guessOneColorSelect.value;
-    guessOneColorSelect.innerHTML = '<option value="">-- Selecciona --</option>'; // Resetear
+    guessOneColorSelect.innerHTML = '<option value="">-- Selecciona --</option>';
     availableColors.forEach(color => {
         const option = document.createElement('option');
         option.value = color; option.textContent = color; option.classList.add(color.toLowerCase());
@@ -350,17 +346,16 @@ function populateGuessOneColorSelect() {
     if(submitGuessOneBtn) submitGuessOneBtn.disabled = !canGuess;
 
     if (guessOneFeedback && availableColors.length === 0 && gameState.myTurn) {
-        guessOneFeedback.textContent = "No quedan colores disponibles para adivinar."; // Mensaje más claro
+        guessOneFeedback.textContent = "No quedan colores disponibles para adivinar.";
         guessOneFeedback.classList.remove("error-text", "success-highlight");
     } else if (guessOneFeedback && !gameState.myTurn && !guessOneFeedback.classList.contains('success-highlight') && !guessOneFeedback.classList.contains('error-text')) {
-        guessOneFeedback.textContent = ""; // Limpiar si no es mi turno y no hay mensaje pendiente
+        guessOneFeedback.textContent = "";
     }
 }
 
 
-/** Función PRINCIPAL para actualizar TODA la UI del juego */
+/** Función PRINCIPAL para actualizar TODA la UI del juego (MODIFICADA para status de minerales) */
 function updateGameUI(newState) {
-    // ... (Sin cambios en la estructura general, las llamadas a populate actualizarán la UI) ...
     console.log(`--- Updating UI Player ${playerId}. Status: ${newState?.status} ---`);
     if (!newState) { console.error("CLIENT ERROR: updateGameUI sin estado!"); showNotification("Error: Estado inválido.", "Error Sincro"); return; }
     const oldStatus = gameState?.status; const wasMyTurnBefore = gameState?.myTurn; gameState = newState;
@@ -368,7 +363,30 @@ function updateGameUI(newState) {
     if (currentPlayerIndicator) { const newText = currentPlayer ? `${currentPlayer.name} (T${currentPlayer.turnOrder})` : (gameState.status.startsWith('finished') ? 'Juego Terminado' : 'Esperando...'); if (currentPlayerIndicator.textContent !== newText) { anime({ targets: currentPlayerIndicator, opacity: [1, 0], duration: 200, easing: 'linear', complete: () => { currentPlayerIndicator.textContent = newText; anime({ targets: currentPlayerIndicator, opacity: [0, 1], duration: 400 }); } }); } }
     if (knownInfoText) knownInfoText.textContent = gameState.knownMineralInfo?.description || '-';
     if (prizeAmountDisplay) prizeAmountDisplay.textContent = formatHackerBytes(gameState.currentPrizePot);
-    if (prizeConditionDisplay) { if (gameState.status === 'playing') prizeConditionDisplay.textContent = "(Equilibra o adivina pesos)"; else if (gameState.status === 'guessing_phase') prizeConditionDisplay.textContent = `(Adivina ${PHASE2_TARGET_CORRECT_GUESSES} pesos)`; else if (gameState.status === 'voting') prizeConditionDisplay.textContent = "(Vota para continuar)"; else prizeConditionDisplay.textContent = "(Juego terminado)"; }
+    if (prizeConditionDisplay) {
+        if (gameState.status === 'playing') prizeConditionDisplay.textContent = "(Equilibra balanza Y todos colocan O adivina pesos)"; // Condición actualizada
+        else if (gameState.status === 'guessing_phase') prizeConditionDisplay.textContent = `(Adivina ${PHASE2_TARGET_CORRECT_GUESSES} pesos)`;
+        else if (gameState.status === 'voting') prizeConditionDisplay.textContent = "(Vota para continuar)";
+        else prizeConditionDisplay.textContent = "(Juego terminado)";
+    }
+
+    // *** NUEVO: Actualizar indicador de estado de minerales ***
+    if (mineralsPlacedStatusEl) {
+        if (gameState.status === 'playing') { // Mostrar solo en Fase 1
+            mineralsPlacedStatusEl.textContent = gameState.allMineralsPlaced
+                ? "¡Todos los minerales activos han sido colocados!"
+                : "Aún faltan minerales por colocar.";
+            // Aplicar estilo si todos han colocado
+            mineralsPlacedStatusEl.classList.toggle('highlight', gameState.allMineralsPlaced);
+            mineralsPlacedStatusEl.classList.remove('hidden'); // Asegurar que esté visible
+        } else {
+            mineralsPlacedStatusEl.textContent = ''; // Limpiar si no es Fase 1
+            mineralsPlacedStatusEl.classList.remove('highlight');
+            mineralsPlacedStatusEl.classList.add('hidden'); // Ocultar si no es Fase 1
+        }
+    }
+    // *** FIN NUEVO ***
+
     updateSingleScaleDisplay('main', gameState.mainScale); updateSingleScaleDisplay('secondary', gameState.secondaryScale);
     if (gamePlayersList) {
         const fragment = document.createDocumentFragment(); const playerElementsMap = new Map(); gamePlayersList.childNodes.forEach(node => { if (node.nodeType === 1 && node.dataset.playerId) playerElementsMap.set(node.dataset.playerId, node); }); const itemsToAnimateEnter = [];
@@ -398,8 +416,7 @@ function updateGameUI(newState) {
             selectedMineralInstanceIds = []; updatePlacementControls();
             if (guessOneFeedback) guessOneFeedback.textContent = ""; if (guessOneWeightInput) guessOneWeightInput.value = "";
         }
-        // Siempre actualizar/repopular el selector de Fase 1 y su visibilidad
-        populateGuessOneColorSelect(); // <<< LLAMADA A FUNCIÓN MODIFICADA
+        populateGuessOneColorSelect();
         updateGuessOneVisibility(isMyTurnNow);
     } else { updatePlacementControlsVisibility(false); updateGuessOneVisibility(false); if (selectedMineralInstanceIds.length > 0) { myInventoryContainer?.querySelectorAll('.selected-material').forEach(btn => btn.classList.remove('selected-material')); selectedMineralInstanceIds = []; } }
 
@@ -442,12 +459,10 @@ function updateGameUI(newState) {
 
 /** Establece estado de carga en botón */
 function setLoadingState(button, isLoading, loadingText = '') {
-    // ... (Sin cambios en esta función) ...
      if (!button) return; if (isLoading) { button.disabled = true; button.dataset.originalContent = button.innerHTML; button.innerHTML = `<span class="spinner" role="status" aria-hidden="true"><i class="fas fa-spinner fa-spin"></i></span> ${loadingText || ''}`; button.classList.add('loading'); } else { button.disabled = false; if (button.dataset.originalContent) { button.innerHTML = button.dataset.originalContent; } button.classList.remove('loading'); delete button.dataset.originalContent; }
 }
 
 // --- Event Listeners de Controles del Cliente ---
-// ... (Sin cambios en createBtn, joinBtn, backBtns, copyCodeBtn, createForm, joinForm, startGameBtn, placeSelectedBtn, cancelPlacementBtn, voteBtns, guessSingleWeightBtn, passTurnBtn, playAgainBtn, modal close) ...
 createBtn?.addEventListener('click', () => showScreen(screens.create));
 joinBtn?.addEventListener('click', () => showScreen(screens.join));
 backFromCreateBtn?.addEventListener('click', () => showScreen(screens.welcome));
@@ -472,7 +487,6 @@ document.querySelectorAll('.modal .close-btn, .modal .modal-cancel-btn').forEach
 socket.on('connect', () => console.log('CLIENT LOG: Conectado:', socket.id));
 socket.on('disconnect', (reason) => { console.warn('CLIENT LOG: Desconectado:', reason); showNotification(`Desconexión: ${reason}. Recarga.`, "Desconectado"); });
 socket.on('error', (data) => {
-     // ... (Manejo de errores y reseteo de botones sin cambios) ...
      console.error('SERVER ERROR:', data.message); showNotification(`Error: ${data.message || 'Error desconocido.'}`, 'Error Servidor');
      if (placeSelectedBtn?.classList.contains('loading')) setLoadingState(placeSelectedBtn, false);
      if (passTurnBtn?.classList.contains('loading')) setLoadingState(passTurnBtn, false);
@@ -480,16 +494,14 @@ socket.on('error', (data) => {
      if (submitGuessOneBtn?.classList.contains('loading')) { setLoadingState(submitGuessOneBtn, false); populateGuessOneColorSelect(); }
      if (guessSingleWeightBtn?.disabled && gameState?.myTurn && gameState?.status === 'guessing_phase') { populateGuessColorSelectFase2(); }
      if (gameState?.myTurn && (gameState.status === 'playing' || gameState.status === 'guessing_phase') && passTurnBtn) passTurnBtn.disabled = false;
-     if (gameState?.myTurn && gameState.status === 'playing') { const count = selectedMineralInstanceIds.length; if(placeSelectedBtn) placeSelectedBtn.disabled = !(count >= 2 && count % 2 === 0); if(cancelPlacementBtn) cancelPlacementBtn.disabled = false; myInventoryContainer?.querySelectorAll('.inventory-item').forEach(btn => btn.disabled = false); populateGuessOneColorSelect(); }
+     if (gameState?.myTurn && gameState.status === 'playing') { const count = selectedMineralInstanceIds.length; if(placeSelectedBtn) placeSelectedBtn.disabled = !(count >= 2 && count % 2 === 0); if(cancelPlacementBtn) cancelPlacementBtn.disabled = false; myInventoryContainer?.querySelectorAll('.inventory-item:not(:disabled)').forEach(btn => btn.disabled = false); populateGuessOneColorSelect(); } // Re-enable only non-disabled inventory items
 });
 
 socket.on('playerListUpdated', (data) => {
-    // ... (Sin cambios en esta función) ...
     console.log("CLIENT LOG: Recibido playerListUpdated:", data); updateWaitingList(data.players);
     if (isHost && startGameBtn && currentScreen === screens.waiting) { const activeCount = data.players?.filter(p => p.isActive).length ?? 0; startGameBtn.disabled = activeCount < 2; startGameBtn.title = activeCount < 2 ? "Mínimo 2 activos" : "Iniciar"; if (activeCount >= 2 && startGameBtn.classList.contains('loading')) setLoadingState(startGameBtn, false); }
 });
 function updateWaitingList(players) {
-    // ... (Sin cambios en esta función) ...
     if (!waitPlayersList || !waitPlayerCount) return; const fragment = document.createDocumentFragment(); const activeCount = players?.filter(p => p.isActive).length ?? 0; waitPlayerCount.textContent = activeCount; if (!players || players.length === 0) { waitPlayersList.innerHTML = '<li class="waiting-placeholder">Esperando...</li>'; return; }
     const currentHostId = gameState?.hostId || players.find(p => p.turnOrder === 1)?.id;
     players.sort((a,b) => a.turnOrder - b.turnOrder).forEach(p => { const li = document.createElement('li'); li.dataset.playerId = p.id; li.innerHTML = `<span class="player-order">${p.turnOrder}.</span> ${p.name} ${p.id === playerId ? '<span class="you-tag">(Tú)</span>' : ''} ${p.id === currentHostId ? '<span class="host-tag">(Host)</span>' : ''} ${!p.isActive ? '<span class="status-tag inactive-tag">(Desc.)</span>': ''}`; fragment.appendChild(li); });
@@ -497,30 +509,33 @@ function updateWaitingList(players) {
 }
 
 socket.on('gameStarted', ({ gameState: receivedGameState }) => {
-    // ... (Sin cambios en esta función) ...
     console.log("CLIENT LOG: Recibido 'gameStarted'."); if (isHost && startGameBtn?.classList.contains('loading')) setLoadingState(startGameBtn, false);
     if (receivedGameState) { gameId = receivedGameState.gameId; playerId = receivedGameState.myPlayerId; isHost = receivedGameState.hostId === playerId; gameState = receivedGameState; showScreen(screens.game); }
     else { showNotification("Error al recibir estado inicial.", "Error Iniciar"); }
 });
 
 socket.on('gameStateUpdated', ({ gameState: receivedGameState }) => {
-    // ... (Sin cambios en esta función) ...
     console.log('--- Received gameStateUpdated ---'); if (!receivedGameState) { console.error("CLIENT ERROR: Estado nulo!"); return; }
-    if (placeSelectedBtn?.classList.contains('loading')) setLoadingState(placeSelectedBtn, false); if (passTurnBtn?.classList.contains('loading')) setLoadingState(passTurnBtn, false);
-    if (guessSingleWeightBtn?.disabled && !receivedGameState.myTurn) guessSingleWeightBtn.disabled = false;
+    // Reset loading states if they were active
+    if (placeSelectedBtn?.classList.contains('loading')) setLoadingState(placeSelectedBtn, false);
+    if (passTurnBtn?.classList.contains('loading')) setLoadingState(passTurnBtn, false);
+    if (submitGuessOneBtn?.classList.contains('loading')) setLoadingState(submitGuessOneBtn, false); // Reset guess button too
+
+    if (guessSingleWeightBtn?.disabled && !receivedGameState.myTurn) guessSingleWeightBtn.disabled = false; // Re-enable guess F2 if no longer my turn
+
     if ((receivedGameState.status === 'playing' || receivedGameState.status === 'guessing_phase' || receivedGameState.status === 'voting') && currentScreen !== screens.game) { console.log(`CLIENT LOG: gameStateUpdated (${receivedGameState.status}), cambiando a pantalla juego.`); gameState = receivedGameState; showScreen(screens.game); }
     else if (currentScreen === screens.game) { updateGameUI(receivedGameState); }
     else if (currentScreen === screens.waiting && receivedGameState.status === 'waiting') { updateWaitingList(receivedGameState.playersPublicInfo); gameState = receivedGameState; }
-     else { console.log(`CLIENT LOG: gameStateUpdated ignorado (Pantalla: ${currentScreen?.id}, Estado: ${receivedGameState.status})`); gameState = receivedGameState; }
+     else { console.log(`CLIENT LOG: gameStateUpdated ignorado (Pantalla: ${currentScreen?.id}, Estado: ${receivedGameState.status})`); gameState = receivedGameState; } // Store state even if not visible
 });
 
 socket.on('voteReceived', ({ playerId: voterId, playerName: voterName }) => {
-    // ... (Sin cambios en esta función) ...
     console.log(`CLIENT LOG: Voto recibido de ${voterName}`);
     if (votingModal.style.display === 'flex' && voteStatusModal && gameState?.votingState) {
         const received = gameState.votingState?.receivedVotes ?? 0; const required = gameState.votingState?.requiredVotes ?? gameState.playersPublicInfo?.filter(p => p.isActive).length ?? 0;
-        const displayReceived = (voterId !== playerId && gameState.votingState?.myVote !== undefined) ? received + 1 : gameState.votingState?.receivedVotes ?? received;
-        voteStatusModal.textContent = `Voto de ${voterName} recibido (${displayReceived}/${required}). Esperando...`;
+        // Mejorar la cuenta de votos recibidos mostrada al cliente
+        const currentVoteCount = gameState.playersPublicInfo?.filter(p => p.hasVoted).length ?? received;
+        voteStatusModal.textContent = `Voto de ${voterName} recibido (${currentVoteCount}/${required}). Esperando...`;
     }
 });
 
@@ -531,29 +546,21 @@ socket.on('singleGuessPhase1Result', ({ success, color, weight, message }) => {
 
     if (guessOneFeedback) {
         guessOneFeedback.textContent = message;
-        // Solo marcar como éxito si realmente acertó (success=true)
-        // Marcar como error si el intento falló (success=false), que incluye límite alcanzado o peso incorrecto.
-        guessOneFeedback.classList.toggle('success-highlight', success === true); // Solo si success es estrictamente true
-        guessOneFeedback.classList.toggle('error-text', success === false); // Si success es false
+        guessOneFeedback.classList.toggle('success-highlight', success === true);
+        guessOneFeedback.classList.toggle('error-text', success === false);
     }
 
-    // Siempre repoblar el select después de CUALQUIER intento (correcto, incorrecto, o límite alcanzado)
-    // para reflejar el nuevo estado (color eliminado por acierto o por límite)
+    // Siempre repoblar el select para reflejar estado actualizado
     populateGuessOneColorSelect();
 
-    // Limpiar input de peso solo si el intento fue correcto o incorrecto (no si fue rechazado por límite)
     if (success === true || (success === false && !message.includes("agotaste tus intentos"))) {
          if (guessOneWeightInput) guessOneWeightInput.value = "";
     }
-    // Re-habilitar controles si aún es mi turno y quedan opciones (populate se encarga)
-    // if(gameState?.myTurn) {
-    //     populateGuessOneColorSelect();
-    // }
+    // Re-habilitar controles (populate se encarga si quedan opciones y es mi turno)
 });
 
 // Resultado de adivinanza individual (Fase 2)
 socket.on('singleGuessResult', ({ playerId: guesserId, playerName, color, weightGuess, correct, justGuessed, message, newTotalGuesses }) => {
-    // ... (Sin cambios en esta función) ...
     console.log(`CLIENT LOG: Resultado adivinanza Fase 2 (${color}): ${message}`);
      if (singleGuessFeedback && currentScreen === screens.game) {
          singleGuessFeedback.textContent = message; singleGuessFeedback.classList.toggle('success-highlight', correct && justGuessed); singleGuessFeedback.classList.toggle('error-text', !correct);
@@ -563,30 +570,36 @@ socket.on('singleGuessResult', ({ playerId: guesserId, playerName, color, weight
 });
 
 socket.on('prizePotUpdated', ({ newPrizePot }) => {
-    // ... (Sin cambios en esta función) ...
     console.log(`CLIENT LOG: Premio actualizado a ${newPrizePot}`);
     if (gameState) gameState.currentPrizePot = newPrizePot; const potDisplay = currentPrizePotDisplay || prizeAmountDisplay;
     if (potDisplay) { potDisplay.textContent = formatHackerBytes(newPrizePot); anime({ targets: potDisplay, scale: [1.15, 1], duration: 600, easing: 'easeOutElastic(1, .7)' }); }
 });
 
-// Fin del juego
+// Fin del juego (Mensaje final ajustado para balance_win)
 socket.on('gameOver', ({ gameState: finalGameState, actualWeights }) => {
-    // ... (Manejo de mensajes finales sin cambios directos, ya incluía el nuevo estado) ...
     console.log("CLIENT LOG: Recibido 'gameOver'. Status:", finalGameState?.status);
     if (votingModal?.style.display !== 'none') hideModal(votingModal);
+    // Resetear botones en carga
     if (placeSelectedBtn?.classList.contains('loading')) setLoadingState(placeSelectedBtn, false); if (passTurnBtn?.classList.contains('loading')) setLoadingState(passTurnBtn, false); if (startGameBtn?.classList.contains('loading')) setLoadingState(startGameBtn, false); if (submitGuessOneBtn?.classList.contains('loading')) setLoadingState(submitGuessOneBtn, false);
 
     if (finalGameState) {
-        gameState = finalGameState; let titleIcon = 'fa-flag-checkered'; let resultMsg = 'Juego Terminado.'; let winnerText = 'Ganadores: Ninguno'; const myFinalPrize = finalGameState.myHackerBytes || 0;
+        gameState = finalGameState; // Guardar estado final
+        let titleIcon = 'fa-flag-checkered'; let resultMsg = 'Juego Terminado.'; let winnerText = 'Ganadores: Ninguno';
+        const myFinalPrize = finalGameState.myHackerBytes || 0;
 
         switch(finalGameState.status) {
-            case 'finished_balance_win': titleIcon = 'fa-check-circle'; resultMsg = `¡${finalGameState.balancerPlayer?.name || 'Alguien'} equilibró y equipo decidió terminar o F2 inviable!`; winnerText = `🏆 Ganador(es): ¡Equipo Activo! (Balanceó ${finalGameState.balancerPlayer?.name || '?'})`; break;
+            case 'finished_balance_win':
+                 titleIcon = 'fa-check-circle';
+                 // *** Mensaje Ajustado ***
+                 resultMsg = `¡${finalGameState.balancerPlayer?.name || 'Alguien'} equilibró la balanza y el equipo decidió NO continuar (o Fase 2 no era viable)!`;
+                 winnerText = `🏆 Ganador(es): ¡Equipo Activo! (Balanceó ${finalGameState.balancerPlayer?.name || '?'})`;
+                 break;
             case 'finished_phase1_knowledge_win': titleIcon = 'fa-brain'; resultMsg = `¡${finalGameState.successfulGuesser?.name || 'Alguien'} descubrió TODOS los pesos restantes en Fase 1!`; winnerText = `🏆 Ganador: ¡${finalGameState.successfulGuesser?.name || '?'}!`; break;
             case 'finished_phase2_win': titleIcon = 'fa-trophy'; resultMsg = `¡Equipo superó Fase 2 con ${finalGameState.phase2CorrectGuessesTotal} aciertos!`; winnerText = `🏆 Ganadores: ¡Equipo Activo!`; break;
             case 'finished_phase2_loss': titleIcon = 'fa-times-circle'; resultMsg = `Equipo no alcanzó ${PHASE2_TARGET_CORRECT_GUESSES} aciertos (${finalGameState.phase2CorrectGuessesTotal}/${PHASE2_TARGET_CORRECT_GUESSES}).`; winnerText = 'Ganadores: Ninguno'; break;
             case 'finished_disconnect_vote': titleIcon = 'fa-user-slash'; resultMsg = 'Terminó por desconexión en votación.'; winnerText = 'Ganadores: Ninguno'; break;
             case 'finished_disconnect_game': titleIcon = 'fa-user-slash'; resultMsg = 'Terminó por falta de jugadores.'; winnerText = 'Ganadores: Ninguno'; break;
-            case 'finished_failure': titleIcon = 'fa-exclamation-circle'; resultMsg = 'Terminó sin ganador claro.'; winnerText = 'Ganadores: Ninguno'; break;
+            case 'finished_failure': titleIcon = 'fa-exclamation-circle'; resultMsg = 'Terminó sin ganador claro (Fase 1 sin balance ni conocimiento).'; winnerText = 'Ganadores: Ninguno'; break;
             default: resultMsg = `Terminado con estado: ${finalGameState.status}`;
         }
         if (finalResultTitle) finalResultTitle.innerHTML = `<i class="fas ${titleIcon}"></i> Fin del Juego`; if (finalResultMessage) finalResultMessage.textContent = resultMsg; if (finalWinners) finalWinners.textContent = winnerText;
@@ -602,7 +615,6 @@ socket.on('gameEndedDueToVoteDisconnect', ({ playerName }) => showNotification(`
 
 // --- Inicialización ---
 window.addEventListener('load', () => {
-    // ... (Sin cambios en esta función) ...
     console.log("CLIENT LOG: Página cargada. Juego Escala v2."); Object.values(screens).forEach(s => { if (s !== screens.welcome) { s.classList.remove('active'); s.style.display = 'none'; s.style.opacity = 0; } });
     if (screens.welcome) { screens.welcome.style.opacity = 0; screens.welcome.style.display = 'flex'; screens.welcome.classList.add('active'); currentScreen = screens.welcome; anime({ targets: screens.welcome, opacity: [0, 1], translateY: [10, 0], duration: 500 }); anime({ targets: '#welcome-screen .animatable-on-load', opacity: [0, 1], translateY: [10, 0], delay: anime.stagger(100, {start: 200}) }); }
     else { console.error("CLIENT CRITICAL: Pantalla bienvenida no encontrada."); document.body.innerHTML = '<h1 style="color: red;">Error Crítico: Interfaz no cargada.</h1>'; }
