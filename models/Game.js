@@ -29,17 +29,18 @@ const GameSchema = new mongoose.Schema({
     status: { // Estado actual del juego
         type: String,
         enum: [
-            'waiting',                 // Esperando jugadores
-            'playing',                 // Fase 1: Colocar minerales / Adivinanza individual opcional
-            'voting',                  // Fase de votación para continuar
-            'guessing_phase',          // Fase 2: Adivinanza individual obligatoria
-            'finished_balance_win',    // Ganó por balancear y votó NO/empate
+            'waiting',                     // Esperando jugadores
+            'playing',                     // Fase 1: Colocar minerales / Adivinanza individual opcional
+            'voting',                      // Fase de votación para continuar
+            'guessing_phase',              // Fase 2: Adivinanza individual obligatoria
+            'finished_balance_win',        // Ganó por balancear y votó NO/empate O Fase 2 inviable
             // 'finished_phase1_guess_win', // REMOVED - Ya no es posible
-            'finished_phase2_win',     // Ganó Fase 2 (>= 3 aciertos)
-            'finished_phase2_loss',    // Perdió Fase 2 (< 3 aciertos)
-            'finished_disconnect_vote',// Alguien desconectó en votación
-            'finished_disconnect_game',// Juego terminó por desconexiones generales
-            'finished_failure'         // Estado genérico si nadie balanceó/ganó
+            'finished_phase1_knowledge_win', // NUEVO: Ganó por adivinar todos los pesos en Fase 1
+            'finished_phase2_win',         // Ganó Fase 2 (>= 3 aciertos)
+            'finished_phase2_loss',        // Perdió Fase 2 (< 3 aciertos)
+            'finished_disconnect_vote',    // Alguien desconectó en votación
+            'finished_disconnect_game',    // Juego terminó por desconexiones generales
+            'finished_failure'             // Estado genérico si nadie balanceó/ganó
         ],
         default: 'waiting'
     },
@@ -72,10 +73,10 @@ const GameSchema = new mongoose.Schema({
         default: null
     },
 
-    // --- NUEVOS CAMPOS ---
+    // --- CAMPOS PARA LÓGICA V2 ---
     currentPrizePot: { // Premio inicial/acumulado
         type: Number,
-        default: 10000000 // O inicializar en server.js al empezar votación
+        default: 10000000 // Valor inicial
     },
     balancerPlayerId: { // Quién equilibró la balanza en Fase 1
         type: mongoose.Schema.Types.ObjectId,
@@ -90,19 +91,19 @@ const GameSchema = new mongoose.Schema({
         requiredVotes: { type: Number, default: 0 },
         receivedVotes: { type: Number, default: 0 }
     },
-    phase1CorrectlyGuessedWeights: { // NUEVO: Pesos adivinados en Fase 1
+    phase1CorrectlyGuessedWeights: { // Pesos adivinados correctamente en Fase 1
         type: Map,
-        of: Number, // Almacena: { 'Color': pesoCorrecto }
+        of: Number, // Almacena: { 'Color': pesoCorrecto } (Ej: { 'Rojo': 15, 'Azul': 5 })
         default: {}
     },
     phase2RoundsPlayed: { type: Number, default: 0 }, // Contador de rondas en Fase 2
     phase2CorrectGuessesTotal: { type: Number, default: 0 }, // Contador global de aciertos únicos en Fase 2
-    phase2CorrectGuessesMap: { // Para asegurar que cada color se cuenta solo una vez
+    phase2CorrectGuessesMap: { // Para asegurar que cada color se cuenta solo una vez y saber quién acertó
         type: Map,
-        of: mongoose.Schema.Types.ObjectId, // { 'Color': playerId }
+        of: mongoose.Schema.Types.ObjectId, // { 'Color': playerIdQueAdivino }
         default: {}
     },
-    successfulGuesser: { // Quién ganó (balance_win) o equipo (phase2_win - puede ser null)
+    successfulGuesser: { // Quién ganó (balance_win / phase1_knowledge_win) o null si gana equipo (phase2_win)
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Player',
         default: null
